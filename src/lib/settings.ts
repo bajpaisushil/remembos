@@ -34,11 +34,34 @@ export const DEFAULT_SETTINGS: Settings = {
 
 const KEY = "remembos:settings:v1";
 
+/** Browser language → Tesseract language (only scripts English OCR can't read; adds nothing for English users). */
+const OCR_FOR_LOCALE: Record<string, string> = {
+  hi: "hin", mr: "mar", ne: "nep", bn: "ben", as: "asm", pa: "pan", gu: "guj", or: "ori", ta: "tam", te: "tel",
+  kn: "kan", ml: "mal", ur: "urd", ar: "ara", fa: "fas", he: "heb", ru: "rus", uk: "ukr", el: "ell", th: "tha",
+  zh: "chi_sim", ja: "jpn", ko: "kor",
+};
+
+/** "eng" plus the browser's own language when English OCR can't read that script (first run only). */
+function defaultOcrLanguages(): string {
+  try {
+    const langs = new Set(["eng"]);
+    for (const tag of navigator.languages ?? [navigator.language]) {
+      const base = (tag || "").toLowerCase();
+      const code = base.startsWith("zh-tw") || base.startsWith("zh-hk") ? "chi_tra" : OCR_FOR_LOCALE[base.split("-")[0]];
+      if (code) langs.add(code);
+      if (langs.size >= 3) break;
+    }
+    return [...langs].join("+");
+  } catch {
+    return DEFAULT_SETTINGS.ocrLanguages;
+  }
+}
+
 function load(): Settings {
   if (typeof window === "undefined") return DEFAULT_SETTINGS;
   try {
     const raw = window.localStorage.getItem(KEY);
-    if (!raw) return DEFAULT_SETTINGS;
+    if (!raw) return { ...DEFAULT_SETTINGS, ocrLanguages: defaultOcrLanguages() };
     return { ...DEFAULT_SETTINGS, ...(JSON.parse(raw) as Partial<Settings>) };
   } catch {
     return DEFAULT_SETTINGS;

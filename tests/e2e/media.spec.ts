@@ -116,3 +116,25 @@ test("Get ready for offline → screenshots are read with the internet off", asy
   await context.setOffline(false);
   w.errors = w.errors.filter((e) => !/ERR_INTERNET_DISCONNECTED/.test(e));
 });
+
+test("Hindi PDF: text comes out exactly as the page shows it (broken text layers are read from the page)", async ({ page, context, isMobile }) => {
+  test.skip(!NETWORK, "Downloads the Hindi text reader (1.4 MB); set REMEMBOS_E2E_NETWORK=1 to run");
+  test.skip(isMobile, "One run is enough");
+  test.slow();
+  await presetSettings(page);
+  await page.goto("/");
+  const maker = await context.newPage();
+  await maker.setContent(
+    `<html><body style="font-family:'Kohinoor Devanagari','Devanagari Sangam MN','Noto Sans Devanagari',sans-serif;font-size:24px">
+      <h1>बिजली बिल भुगतान रसीद</h1>
+      <p>उपभोक्ता का नाम: राहुल शर्मा। कुल राशि जमा की गई। अगली तिथि मार्च में है।</p></body></html>`,
+  );
+  const pdf = await maker.pdf({ format: "A4" });
+  await maker.close();
+  await upload(page, { name: "hindi-bill.pdf", mimeType: "application/pdf", buffer: pdf });
+  const item = await waitForReady(page, bySource("hindi-bill.pdf"), 180_000);
+  expect(item.text).toContain("बिजली");
+  expect(item.text).toContain("राहुल");
+  await search(page, "बिजली बिल");
+  await expect(page.getByTestId("search-result").first()).toHaveAttribute("data-item-id", item.id);
+});

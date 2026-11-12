@@ -46,7 +46,8 @@ export function tokenize(text: string): string[] {
   return out;
 }
 
-const TOKEN_RE = /[\p{L}\p{N}]+/gu;
+// Marks (\p{M}) are part of words: Hindi/Bengali/Tamil vowel signs, Arabic harakat, combining accents.
+const TOKEN_RE = /[\p{L}\p{M}\p{N}]+/gu;
 
 /** Question scaffolding that never helps keyword search ("where did I see…", "what was mentioned…"). */
 const QUERY_FILLER: ReadonlySet<string> = new Set(

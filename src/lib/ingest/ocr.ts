@@ -28,7 +28,8 @@ const LOAD_STEPS: Record<string, [number, number]> = {
 };
 
 const LETTER_OR_DIGIT = new RegExp("[\\p{L}\\p{N}]", "gu");
-const WORDISH = new RegExp("[\\p{L}\\p{N}]{3,}", "u");
+// Marks belong to words (Hindi "बिजली" is letters with vowel signs between them).
+const WORDISH = new RegExp("[\\p{L}\\p{M}\\p{N}]{3,}", "u");
 
 let workerPromise: Promise<TesseractWorker> | null = null;
 let workerLangs = "";
@@ -128,8 +129,15 @@ async function createOcrWorker(langs: string): Promise<TesseractWorker> {
   }
 }
 
-function getWorker(): Promise<TesseractWorker> {
-  const langs = languages();
+/** Settings languages plus any extra ones a job needs (e.g. "hin" for a Hindi PDF page), deduplicated. */
+function withExtra(extra?: string[]): string {
+  const base = languages().split("+");
+  for (const l of extra ?? []) if (/^[a-z_]{3,16}$/i.test(l) && !base.includes(l)) base.push(l);
+  return base.join("+");
+}
+
+function getWorker(extra?: string[]): Promise<TesseractWorker> {
+  const langs = withExtra(extra);
   if (workerPromise && workerLangs !== langs) void disposeOcr();
   if (!workerPromise) {
     workerLangs = langs;
@@ -186,11 +194,13 @@ function toResult(page: Page): { text: string; confidence: number } {
 export async function recognize(
   image: Blob | HTMLCanvasElement | OffscreenCanvas,
   onProgress?: (p: number) => void,
+  /** Extra languages for this image (downloaded once if needed), e.g. ["hin"] for a Hindi PDF page. */
+  extraLangs?: string[],
 ): Promise<{ text: string; confidence: number }> {
   const run = async () => {
     clearIdle();
     try {
-      const worker = await getWorker();
+      const worker = await getWorker(extraLangs);
       activeProgress = onProgress ?? null;
       const { data } = await worker.recognize(image, {}, { text: true, blocks: true });
       onProgress?.(1);

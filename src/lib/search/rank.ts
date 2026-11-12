@@ -15,7 +15,8 @@ import type { DateRange, EntityType, Snippet } from "../types";
 export const SPLIT_RE = /[\n\r\p{Z}\p{P}]+/u;
 const TOKEN_SOURCE = "[^\\n\\r\\p{Z}\\p{P}]+";
 const NON_ASCII = /[^\x00-\x7f]/;
-const MARKS = /\p{M}+/gu;
+/** Combining diacritical marks (accents on Latin, Greek, Cyrillic letters). */
+const MARKS = /[\u0300-\u036f]+/g;
 
 /** Very common English words: not worth indexing or highlighting. */
 const STOPWORDS = new Set(
@@ -29,7 +30,9 @@ const STOPWORDS = new Set(
 /** Lowercase and fold accents ("Café" → "cafe"). Cheap for plain ASCII. */
 export function normalizeTerm(term: string): string {
   const lower = term.toLowerCase();
-  return NON_ASCII.test(lower) ? lower.normalize("NFD").replace(MARKS, "") : lower;
+  // Fold Latin-style accents only (café → cafe). Vowel signs of other scripts are letters' parts, not accents:
+  // stripping them would make Hindi "बिल", "बल" and "बाल" the same word.
+  return NON_ASCII.test(lower) ? lower.normalize("NFD").replace(MARKS, "").normalize("NFC") : lower;
 }
 
 /** MiniSearch `processTerm`: normalised term, or null to skip stopwords/empties. */

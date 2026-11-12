@@ -802,7 +802,7 @@ function extractNames(ctx: Context, words: Word[], maxNames: number): Set<string
     // Long Title Case lines are headings ("Quarterly Business Review Planning Notes"), not names.
     if (core.length >= 4) {
       const line = lineAround(text, first.start, last.end);
-      const lettersOnly = (s: string) => s.replace(/[^\p{L}]+/gu, " ").trim();
+      const lettersOnly = (s: string) => s.replace(/[^\p{L}\p{M}]+/gu, " ").trim();
       if (line !== null && lettersOnly(line) === lettersOnly(text.slice(first.start, last.end))) return;
     }
     const value = text.slice(first.start, last.end);
@@ -878,7 +878,7 @@ function extractNames(ctx: Context, words: Word[], maxNames: number): Set<string
 
 // ───────────────────────────── topics ─────────────────────────────
 
-const TOPIC_WORD_RE = /^\p{L}+(?:-\p{L}+)*$/u;
+const TOPIC_WORD_RE = /^[\p{L}\p{M}]+(?:-[\p{L}\p{M}]+)*$/u;
 
 function extractTopics(ctx: Context, words: Word[], nameWords: Set<string>, maxTopics: number): void {
   if (maxTopics <= 0) return;

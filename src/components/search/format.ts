@@ -120,10 +120,10 @@ export function termRanges(text: string, words: readonly string[], max = 40): [n
     (a, b) => b.length - a.length,
   );
   if (!uniq.length) return [];
-  const alternatives = uniq.map((w) => (w.length >= 3 ? `${escapeRegExp(w)}[\\p{L}\\p{N}]*` : `${escapeRegExp(w)}(?![\\p{L}\\p{N}])`));
+  const alternatives = uniq.map((w) => (w.length >= 3 ? `${escapeRegExp(w)}[\\p{L}\\p{M}\\p{N}]*` : `${escapeRegExp(w)}(?![\\p{L}\\p{M}\\p{N}])`));
   let re: RegExp;
   try {
-    re = new RegExp(`(?<![\\p{L}\\p{N}])(?:${alternatives.join("|")})`, "giu");
+    re = new RegExp(`(?<![\\p{L}\\p{M}\\p{N}])(?:${alternatives.join("|")})`, "giu");
   } catch {
     return [];
   }

@@ -12,6 +12,7 @@ import { throwIfAborted } from "./errors";
 import { followOcrDownload } from "./extract-image";
 import { recognize } from "./ocr";
 import { canvasToBlob, createCanvas, encodeThumb, OCR_MAX_SIDE, releaseCanvas, THUMB_MAX_SIDE } from "./thumbnail";
+import { pageNeedsReading } from "./script-check";
 
 /** Pages with less text than this (ignoring whitespace) are treated as scanned and OCR'd. */
 const MIN_TEXT_CHARS = 25;
@@ -116,6 +117,9 @@ export async function extractPdf(blob: Blob, ctx: ExtractContext): Promise<Extra
     const count = doc.numPages;
     const pages: string[] = new Array<string>(count).fill("");
     const scanned: number[] = [];
+    /** Pages whose text layer is broken (lost vowel signs, old non-Unicode fonts) → read from the image. */
+    const broken = new Set<number>();
+    const extraLangs = new Set<string>();
 
     for (let n = 1; n <= count; n++) {
       throwIfAborted(ctx.signal);
@@ -126,7 +130,18 @@ export async function extractPdf(blob: Blob, ctx: ExtractContext): Promise<Extra
       } finally {
         page.cleanup();
       }
+      const raw = pages[n - 1];
+      // Glyphs without a character code come out as NUL placeholders — never store them.
+      pages[n - 1] = raw.replace(/[\u0000\uFFFD]/g, "");
       if (compactLength(pages[n - 1]) < MIN_TEXT_CHARS) scanned.push(n);
+      else {
+        const langs = pageNeedsReading(raw);
+        if (langs) {
+          scanned.push(n);
+          broken.add(n);
+          langs.forEach((l) => extraLangs.add(l));
+        }
+      }
       ctx.setProgress(n / count, count > 1 ? `Reading page ${n} of ${count}…` : "Reading…");
     }
 
@@ -150,7 +165,8 @@ export async function extractPdf(blob: Blob, ctx: ExtractContext): Promise<Extra
           for (let k = 0; k < toRead.length; k++) {
             throwIfAborted(ctx.signal);
             const pageNo = toRead[k];
-            const label = toRead.length > 1 ? `Reading scanned page ${k + 1} of ${toRead.length}…` : "Reading scanned page…";
+            const what = broken.has(pageNo) ? "page" : "scanned page";
+            const label = toRead.length > 1 ? `Reading ${what} ${k + 1} of ${toRead.length}…` : `Reading ${what}…`;
             const canvas = await renderPage(doc, pageNo, OCR_MAX_SIDE, OCR_SCALE);
             let png: Blob;
             try {
@@ -158,8 +174,13 @@ export async function extractPdf(blob: Blob, ctx: ExtractContext): Promise<Extra
             } finally {
               releaseCanvas(canvas);
             }
-            const r = await recognize(png, (p) => ctx.setProgress((k + p) / toRead.length, label));
-            if (compactLength(r.text) > compactLength(pages[pageNo - 1])) {
+            const r = await recognize(png, (p) => ctx.setProgress((k + p) / toRead.length, label), [...extraLangs]);
+            // Scanned pages: keep the longer text. Broken text layers: the page image is the truth, as long as
+            // the reader found a fair amount of text.
+            const better = broken.has(pageNo)
+              ? compactLength(r.text) >= compactLength(pages[pageNo - 1]) * 0.4
+              : compactLength(r.text) > compactLength(pages[pageNo - 1]);
+            if (better) {
               pages[pageNo - 1] = r.text;
               weighted += r.confidence * r.text.length;
               chars += r.text.length;
