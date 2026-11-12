@@ -95,6 +95,10 @@ async function onInstalled(): Promise<void> {
   } catch {
     /* persistence is a bonus — the storage watcher keeps nudging when it matters */
   }
+  // Install = also download the AI models, so the app works fully offline straight away.
+  setTimeout(() => {
+    void import("./offline").then((m) => m.prepareOffline("install")).catch(() => {});
+  }, 1500);
 }
 
 /** Wire up beforeinstallprompt / appinstalled / display-mode listeners (call once on the client). Returns cleanup. */
@@ -107,6 +111,13 @@ export function initInstall(): () => void {
   if (early) deferred = early;
   w[EARLY_INSTALL_PROMPT_KEY] = null;
   sync({ installed: isRunningStandalone() });
+  // Running as the installed app (incl. iPhone, which has no "installed" event): make sure the AI models are on
+  // this device for offline use. Waits a moment so it never competes with the first paint.
+  if (isRunningStandalone()) {
+    setTimeout(() => {
+      void import("./offline").then((m) => m.prepareOfflineIfNeeded()).catch(() => {});
+    }, 4000);
+  }
 
   const onBeforeInstallPrompt = (event: Event) => {
     // Keep the browser's own banner quiet; Remembos offers "Install app" where it fits.

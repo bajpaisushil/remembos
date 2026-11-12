@@ -8,7 +8,8 @@
 import { AudioLines, BrainCircuit, CircleCheck, CloudDownload, Cpu, RefreshCw, ScanText, Trash2, TriangleAlert, WifiOff } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { toast } from "sonner";
-import { loadEmbedder, warmupEmbedder, embedderStatus } from "@/lib/ai/embedder";
+import { warmupEmbedder, embedderStatus } from "@/lib/ai/embedder";
+import { offlineDownloadBytes, offlinePrep, prepareOffline } from "@/lib/offline";
 import { MODELS, OCR_LANG_DEFAULT } from "@/lib/config";
 import { ocrStatus } from "@/lib/ingest/ocr";
 import { whisperStatus } from "@/lib/ingest/transcribe";
@@ -75,42 +76,23 @@ export function ModelsPanel() {
     void backfillEmbeddings();
   }
 
-  const [preparing, setPreparing] = useState(false);
+  const prep = useStore(offlinePrep);
+  const preparing = prep.state === "preparing";
   const offlineReady =
-    ocr.state === "ready" &&
-    (!settings.semanticSearch || emb.state === "ready") &&
-    (!settings.transcribeAudio || whisper.state === "ready");
-  const offlineBytes =
-    MODELS.ocr.approxBytes +
-    (settings.semanticSearch ? MODELS.embedder.approxBytes : 0) +
-    (settings.transcribeAudio ? MODELS.whisper.approxBytes : 0);
+    prep.state === "ready" ||
+    (!!settings.offlinePreparedAt &&
+      caches.ocr !== false &&
+      (!settings.semanticSearch || caches.embedder !== false) &&
+      (!settings.transcribeAudio || caches.whisper !== false)) ||
+    (ocr.state === "ready" &&
+      (!settings.semanticSearch || emb.state === "ready") &&
+      (!settings.transcribeAudio || whisper.state === "ready"));
+  const offlineBytes = offlineDownloadBytes(settings);
 
-  /** Download every helper now, so screenshots, meaning search and voice also work without internet. */
+  /** Download every model now, so screenshots, meaning search and voice also work without internet. */
   async function getReadyForOffline() {
-    setPreparing(true);
-    const id = "offline-ready";
-    toast.loading("Getting ready for offline…", { id, description: `Downloading the AI models once (about ${formatBytes(offlineBytes)}).` });
-    try {
-      const { warmupOcr } = await import("@/lib/ingest/ocr");
-      await warmupOcr();
-      if (settings.semanticSearch) await loadEmbedder();
-      if (settings.transcribeAudio) {
-        const { warmupWhisper } = await import("@/lib/ingest/transcribe");
-        await warmupWhisper();
-      }
-      await refreshModelCaches();
-      toast.success("Ready for offline", {
-        id,
-        description: "Screenshots, search and voice notes now work without internet. Install Remembos as an app to open it offline from your Dock or Start menu.",
-      });
-    } catch (err) {
-      toast.error("Couldn't finish downloading", {
-        id,
-        description: `${err instanceof Error ? err.message : "Check your connection"} — try again when you're online. Keyword search always works offline.`,
-      });
-    } finally {
-      setPreparing(false);
-    }
+    await prepareOffline("button");
+    await refreshModelCaches();
   }
 
   async function removeModels() {

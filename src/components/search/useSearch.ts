@@ -6,7 +6,9 @@
 import { useLiveQuery } from "dexie-react-hooks";
 import { useEffect, useState } from "react";
 import { db } from "@/lib/db";
-import { search, suggest } from "@/lib/search";
+import { embedderStatus } from "@/lib/ai/embedder";
+import { indexStatus, search, suggest } from "@/lib/search";
+import { useStore } from "@/lib/store";
 import type { SearchResponse } from "@/lib/types";
 import { ANY_TIME } from "./format";
 
@@ -83,6 +85,13 @@ export function useSearchResults({ query, limit, anyTime = false, enabled = true
   const key = JSON.stringify([q, limit, anyTime, refreshKey]);
   const [settled, setSettled] = useState<Settled>(INITIAL);
 
+  // When this answer was keyword-only because meaning search was still downloading or preparing, quietly
+  // search again the moment it becomes available (the old results stay on screen meanwhile).
+  const modelState = useStore(embedderStatus).state;
+  const hasVectors = useStore(indexStatus).vectors > 0;
+  const waitingForMeaning = Boolean(settled.response && !settled.response.semanticUsed && settled.response.semanticNote && modelState !== "disabled");
+  const upgradeKey = waitingForMeaning ? `${modelState}|${hasVectors ? 1 : 0}` : "";
+
   useEffect(() => {
     if (!q || !enabled) return;
     let cancelled = false;
@@ -99,7 +108,7 @@ export function useSearchResults({ query, limit, anyTime = false, enabled = true
     return () => {
       cancelled = true;
     };
-  }, [key, q, limit, anyTime, enabled]);
+  }, [key, q, limit, anyTime, enabled, upgradeKey]);
 
   return {
     response: settled.response,

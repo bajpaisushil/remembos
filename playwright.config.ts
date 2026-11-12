@@ -1,9 +1,11 @@
 import { defineConfig, devices } from "@playwright/test";
 
-// Unit tests run in Node. E2E tests run against the static export in out/ (run `npm run build` first).
+// Unit tests run in Node. E2E tests run against the static export in out/ (run `npm run build` first), or
+// against a deployed site: E2E_BASE_URL=https://your-site.vercel.app npm run test:e2e
 // Uses the locally installed Google Chrome by default; set PW_CHANNEL="" to use Playwright's Chromium.
 const channel = process.env.PW_CHANNEL ?? "chrome";
 const PORT = Number(process.env.PORT || 4310);
+const REMOTE = process.env.E2E_BASE_URL?.replace(/\/$/, "");
 
 /** Projects picked with --project (none = all). Unit tests run in Node and need no web server. */
 function selectedProjects(argv: string[]): string[] {
@@ -25,7 +27,7 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   reporter: [["list"]],
   use: {
-    baseURL: `http://localhost:${PORT}`,
+    baseURL: REMOTE || `http://localhost:${PORT}`,
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
   },
@@ -42,7 +44,7 @@ export default defineConfig({
       use: { ...devices["Pixel 7"], channel: channel || undefined },
     },
   ],
-  webServer: unitOnly
+  webServer: unitOnly || REMOTE
     ? undefined
     : {
         command: `node scripts/serve-out.mjs`,

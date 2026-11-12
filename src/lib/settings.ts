@@ -14,6 +14,8 @@ export interface Settings {
   /** Dismissed the inline first-visit welcome tip (there is no blocking welcome dialog). */
   onboarded: boolean;
   lastBackupAt?: number;
+  /** When every AI model was downloaded for offline use (set on app install / "Get ready for offline"). */
+  offlinePreparedAt?: number;
   /** Already asked the browser for persistent storage. */
   persistAsked?: boolean;
   /** Toast keys the user snoozed → snoozed-until ms epoch. */

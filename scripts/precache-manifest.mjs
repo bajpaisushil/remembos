@@ -7,13 +7,22 @@ import { fileURLToPath } from "node:url";
 
 const out = fileURLToPath(new URL("../out/", import.meta.url));
 const files = [];
-(function walk(dir) {
+function walk(dir) {
   for (const name of readdirSync(dir)) {
     const p = join(dir, name);
     if (statSync(p).isDirectory()) walk(p);
     else if (!name.endsWith(".map")) files.push(relative(out, p).split(sep).join("/"));
   }
-})(join(out, "_next", "static"));
+}
+walk(join(out, "_next", "static"));
+// The PDF reader's helper and the AI background workers are fetched on first use — precache them too.
+for (const dir of ["vendor", "workers"]) {
+  try {
+    walk(join(out, dir));
+  } catch {
+    /* folder missing — nothing to add */
+  }
+}
 files.sort();
 
 const hash = createHash("sha256");

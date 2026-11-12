@@ -41,7 +41,11 @@ const DESCRIPTION =
 /** Runs in <head> before first paint: theme class, early install prompt capture, `?action=` → `#upload`/`#paste`. */
 const HEAD_SCRIPT = THEME_INIT_SCRIPT + EARLY_INSTALL_PROMPT_SCRIPT + LAUNCH_ACTION_SCRIPT;
 
+/** Public address of the deployed site (Vercel project "remembos"), used for link previews. */
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://remembos.vercel.app";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: {
     default: `${APP_NAME} — your private memory`,
     template: `%s · ${APP_NAME}`,
