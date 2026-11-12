@@ -8,7 +8,7 @@ import { LIMITS, MODELS, TRANSFORMERS_CDN, WHISPER_MODEL } from "../config";
 import { createStore } from "../store";
 import type { ModelStatus } from "../types";
 import { assetUrl, formatDuration, uid } from "../utils";
-import { abortError, IngestError, throwIfAborted } from "./errors";
+import { abortError, IngestError, OFFLINE_WAIT_MESSAGE, throwIfAborted } from "./errors";
 import { modelDownloadToast, type ModelToast } from "./model-toast";
 
 export const whisperStatus = createStore<ModelStatus>({ state: "idle" });
@@ -62,7 +62,8 @@ function stopWorker(): void {
   worker = null;
 }
 
-const LOAD_FAILED = "Couldn't load the voice transcriber (a one-time download). Check your connection, then retry.";
+const LOAD_FAILED_ONLINE = "Couldn't load the voice transcriber (a one-time download). Check your connection, then retry.";
+const loadFailedMessage = () => (typeof navigator !== "undefined" && navigator.onLine === false ? OFFLINE_WAIT_MESSAGE : LOAD_FAILED_ONLINE);
 
 function handleMessage(msg: FromWorker): void {
   switch (msg.type) {
@@ -82,7 +83,7 @@ function handleMessage(msg: FromWorker): void {
       whisperStatus.set({ state: "error", error: "Couldn't download the voice transcriber. Check your connection, then retry." });
       notice?.fail();
       notice = null;
-      failAll(new IngestError(LOAD_FAILED));
+      failAll(new IngestError(loadFailedMessage()));
       stopWorker();
       break;
     case "progress":
@@ -122,7 +123,7 @@ function getWorker(): Worker {
     });
     if (loading) notice?.fail();
     notice = null;
-    failAll(new IngestError(loading ? LOAD_FAILED : "The voice transcriber stopped unexpectedly (often low memory). Retry in a moment."));
+    failAll(new IngestError(loading ? loadFailedMessage() : "The voice transcriber stopped unexpectedly (often low memory). Retry in a moment."));
     stopWorker();
   };
   worker = w;

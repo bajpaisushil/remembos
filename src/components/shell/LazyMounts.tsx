@@ -10,7 +10,7 @@ import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { queueStore } from "@/lib/ingest/queue-store";
 import { useStore } from "@/lib/store";
-import { installHelpOpen, paletteOpen, quickAdd, recorderOpen } from "@/lib/ui-state";
+import { installHelpOpen, offlineSetupOpen, paletteOpen, quickAdd, recorderOpen } from "@/lib/ui-state";
 import { usePaletteShortcuts } from "@/components/search/palette-shortcuts";
 
 const loadDock = () => import("@/components/ingest/QueueDock").then((m) => m.QueueDock);
@@ -18,12 +18,14 @@ const loadQuickAdd = () => import("@/components/ingest/QuickAddDialog").then((m)
 const loadRecorder = () => import("@/components/ingest/VoiceRecorderDialog").then((m) => m.VoiceRecorderDialog);
 const loadPalette = () => import("@/components/search/CommandPalette").then((m) => m.CommandPalette);
 const loadInstallHelp = () => import("./InstallHelpDialog").then((m) => m.InstallHelpDialog);
+const loadOfflineSetup = () => import("./OfflineSetup").then((m) => m.OfflineSetupDialog);
 
 const QueueDock = dynamic(loadDock, { ssr: false });
 const QuickAddDialog = dynamic(loadQuickAdd, { ssr: false });
 const VoiceRecorderDialog = dynamic(loadRecorder, { ssr: false });
 const CommandPalette = dynamic(loadPalette, { ssr: false });
 const InstallHelpDialog = dynamic(loadInstallHelp, { ssr: false });
+const OfflineSetupDialog = dynamic(loadOfflineSetup, { ssr: false });
 
 /** Returns true from the first time `active` is true, forever after. */
 function useSticky(active: boolean): boolean {
@@ -41,6 +43,7 @@ export function LazyMounts() {
   const showRecorder = useSticky(useStore(recorderOpen));
   const showPalette = useSticky(useStore(paletteOpen));
   const showInstallHelp = useSticky(useStore(installHelpOpen));
+  const showOfflineSetup = useSticky(useStore(offlineSetupOpen));
 
   // Warm the code in idle time so the first open is instant.
   useEffect(() => {
@@ -62,6 +65,7 @@ export function LazyMounts() {
       {showRecorder && <VoiceRecorderDialog />}
       {showPalette && <CommandPalette />}
       {showInstallHelp && <InstallHelpDialog />}
+      {showOfflineSetup && <OfflineSetupDialog />}
     </>
   );
 }

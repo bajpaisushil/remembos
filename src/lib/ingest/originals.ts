@@ -1,5 +1,5 @@
 // Originals of just-added files are written to IndexedDB in the background, right after their memory rows
-// appear — so adding a file never waits for the browser to copy it (a 300 MB video takes a while). While a
+// appear — so adding a file never waits for the browser to copy it (a 500 MB video takes a while). While a
 // write is in flight, processing reads the in-memory file and waits for the write to finish before the
 // memory is marked ready, so a memory is never "ready" without its original stored.
 import { db } from "../db";

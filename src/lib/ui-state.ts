@@ -24,3 +24,6 @@ export const recorderOpen = createStore<boolean>(false);
 
 /** "How to install" instructions sheet (iOS Add to Home Screen, or browsers without a prompt). Rendered by the shell. */
 export const installHelpOpen = createStore<boolean>(false);
+
+/** "Use Remembos offline" steps dialog. Rendered by components/shell/OfflineSetup (via LazyMounts). */
+export const offlineSetupOpen = createStore<boolean>(false);

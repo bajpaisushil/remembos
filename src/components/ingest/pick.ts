@@ -11,6 +11,7 @@ export const KIND_ACCEPT: Record<Exclude<MemoryKind, "note">, string> = {
   image: "image/*,.png,.jpg,.jpeg,.webp,.gif,.bmp,.avif,.heic,.heif",
   pdf: "application/pdf,.pdf",
   video: "video/*,.mp4,.mov,.m4v,.webm,.qt",
+  file: "", // any file type
   voice: "audio/*,video/webm,.m4a,.mp3,.wav,.ogg,.oga,.opus,.webm,.flac,.aac,.vtt,.srt",
   text: "text/plain,text/markdown,text/csv,text/html,application/json,.txt,.md,.markdown,.csv,.tsv,.json,.html,.htm,.xml,.log,.vcf,.rtf",
 };

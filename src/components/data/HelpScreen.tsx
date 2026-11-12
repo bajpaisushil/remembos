@@ -45,6 +45,7 @@ import { Accent, Container, PageHeader, SectionHeader } from "@/components/ui/Pa
 import { KIND_META, LIMITS, MODELS, ROUTES, searchHref } from "@/lib/config";
 import { MEMORY_KINDS } from "@/lib/types";
 import { formatBytes } from "@/lib/utils";
+import { OfflineSetupSteps } from "@/components/shell/OfflineSetup";
 import { HelpTourButton } from "./HelpTourButton";
 import { AskScene, DropScene, ReadScene } from "./illustrations";
 import { InstallActions } from "./InstallAppCard";
@@ -548,7 +549,9 @@ export function HelpScreen() {
             })}
           </ul>
           <Callout tone="info" icon={<Upload />} className="mt-4">
-            Files up to {formatBytes(LIMITS.maxFileBytes, 0)} each (you&apos;ll get a heads-up above {formatBytes(LIMITS.largeFileBytes, 0)}).
+            Any file type, up to {formatBytes(LIMITS.maxFileBytes, 0)} each (you&apos;ll get a heads-up above {formatBytes(LIMITS.largeFileBytes, 0)}).
+            Files Remembos can&apos;t read inside (RVT, ZIP, CAD…) are kept exactly as they are and found by name; Word, Excel,
+            PowerPoint and IFC files are searched by the text inside.
             Scanned PDFs: the first {LIMITS.maxOcrPdfPages} pages are read. Recordings: up to {Math.round(LIMITS.maxAudioSeconds / 60)} minutes
             are transcribed. Videos: what&apos;s said is transcribed, and text on screen is read from {LIMITS.maxVideoOcrFrames} moments across the
             video.
@@ -649,6 +652,20 @@ export function HelpScreen() {
               </AccordionItem>
             ))}
           </Accordion>
+        </section>
+
+        {/* Use it without internet */}
+        <section aria-labelledby="offline" data-testid="help-offline">
+          <Card>
+            <h2 id="offline" className="scroll-mt-24 text-xl font-semibold tracking-tight text-zinc-900 dark:text-white">
+              Use it without internet
+            </h2>
+            <p className="mt-1 mb-5 max-w-2xl text-sm text-muted">
+              Your memories never need the internet. The app itself and its AI models download once — do these steps while you&apos;re
+              still online, then switching Wi-Fi off changes nothing.
+            </p>
+            <OfflineSetupSteps />
+          </Card>
         </section>
 
         {/* Install as an app */}

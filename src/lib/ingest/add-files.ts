@@ -7,7 +7,7 @@ import { db } from "../db";
 import { ensureSpaceFor, handleStorageError, refreshStorage } from "../storage/monitor";
 import type { MemoryItem, MemoryKind } from "../types";
 import { formatBytes, uid } from "../utils";
-import { baseName, canDecodeImage, detectKind, isHeic, needsDecodeCheck, shortName, unsupportedReason } from "./detect";
+import { baseName, canDecodeImage, detectKind, needsDecodeCheck, shortName } from "./detect";
 import { navigate } from "./nav";
 import { storeOriginal } from "./originals";
 import { enqueue, reserveItems, type QueueEntry } from "./queue";
@@ -156,30 +156,9 @@ async function classify(file: File): Promise<{ kind: MemoryKind } | { rejected: 
       },
     };
   }
-  const kind = detectKind(file);
-  if (!kind) {
-    const { reason, hint } = unsupportedReason(file);
-    return { rejected: { name, key: reason, reason, hint } };
-  }
-  if (kind === "image" && needsDecodeCheck(file) && !(await canDecodeImage(file))) {
-    return isHeic(file)
-      ? {
-          rejected: {
-            name,
-            key: "heic",
-            reason: "this browser can't open HEIC photos",
-            hint: "Export it as JPG first (on iPhone: Settings → Camera → Formats → Most Compatible), or open Remembos in Safari.",
-          },
-        }
-      : {
-          rejected: {
-            name,
-            key: "image-format",
-            reason: "this browser can't open this image format",
-            hint: "Save it as PNG or JPG first, then add it again.",
-          },
-        };
-  }
+  const kind = detectKind(file) ?? "file";
+  // A photo this browser can't open (e.g. HEIC outside Safari) is still kept — as a file, findable by name.
+  if (kind === "image" && needsDecodeCheck(file) && !(await canDecodeImage(file))) return { kind: "file" };
   return { kind };
 }
 

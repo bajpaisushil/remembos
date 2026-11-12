@@ -69,11 +69,18 @@ export function modelDownloadToast(opts: ModelToastOptions): ModelToast {
       finished = true;
       clearTimeout(timer);
       const offline = typeof navigator !== "undefined" && navigator.onLine === false;
+      if (offline) {
+        toast.info(`${opts.label.charAt(0).toUpperCase()}${opts.label.slice(1)} isn't set up for offline yet`, {
+          id: opts.id,
+          description: "It needs a one-time download while you're online. What you add now is kept and read automatically when you're back online.",
+          duration: 10_000,
+          action: { label: "Offline steps", onClick: () => void import("../offline").then((m) => m.openOfflineSetup()) },
+        });
+        return;
+      }
       toast.error(`Couldn't download ${opts.label}`, {
         id: opts.id,
-        description: offline
-          ? "You're offline. Reconnect once to download it — keyword search still works for everything else."
-          : "Check your connection or any content blocker, then retry. Keyword search still works for everything else.",
+        description: "Check your connection or any content blocker, then retry. Keyword search still works for everything else.",
         duration: 10_000,
       });
     },

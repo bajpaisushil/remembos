@@ -1,4 +1,4 @@
-import { Clapperboard, ClipboardType, FileText, ImageIcon, Mic, StickyNote, type LucideIcon } from "lucide-react";
+import { Clapperboard, ClipboardType, FileText, ImageIcon, Mic, StickyNote, type LucideIcon, Paperclip } from "lucide-react";
 import { KIND_HEX, KIND_META } from "@/lib/config";
 import type { MemoryKind } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -8,6 +8,7 @@ export const KIND_ICONS: Record<MemoryKind, LucideIcon> = {
   image: ImageIcon,
   pdf: FileText,
   video: Clapperboard,
+  file: Paperclip,
   voice: Mic,
   text: ClipboardType,
   note: StickyNote,

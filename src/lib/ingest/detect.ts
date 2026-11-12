@@ -21,18 +21,8 @@ const TEXT_MIME = new Set([
   "application/xhtml+xml",
 ]);
 
-/** Value for <input type="file" accept=...>. */
-export const ACCEPTED_FILE_TYPES = [
-  "image/*",
-  "application/pdf",
-  "audio/*",
-  "video/*",
-  ".heic,.heif",
-  ".m4a,.mp3,.wav,.ogg,.oga,.opus,.weba,.flac,.aac",
-  ".mp4,.mov,.m4v,.webm,.mkv,.ogv",
-  ".txt,.md,.markdown,.csv,.tsv,.json,.html,.htm,.xml,.log,.vcf",
-  ".vtt,.srt,.rtf",
-].join(",");
+/** Value for <input type="file" accept=...>: empty = every file type (anything can be remembered). */
+export const ACCEPTED_FILE_TYPES = "";
 
 /** Lower-case extension without the dot ("" when none). */
 export function extensionOf(name: string): string {
@@ -108,16 +98,17 @@ export function detectKind(file: File): MemoryKind | null {
   if (VIDEO_EXT.has(ext)) return mime.startsWith("audio/") ? "voice" : "video";
   if (AUDIO_EXT.has(ext)) return "voice";
   if (TEXT_EXT.has(ext)) return "text";
-  if (ext === "svg" || UNPLAYABLE_VIDEO_EXT.has(ext)) return null;
+  // Anything else is still kept, as a "file" memory (stored as-is; text-based formats are also searched).
+  if (ext === "svg" || UNPLAYABLE_VIDEO_EXT.has(ext)) return "file";
 
   if (mime === "application/pdf" || mime === "application/x-pdf") return "pdf";
   if (mime === "text/vtt" || mime === "application/x-subrip" || mime === "text/srt") return "voice";
-  if (mime.startsWith("image/")) return mime.includes("svg") ? null : "image";
+  if (mime.startsWith("image/")) return mime.includes("svg") ? "file" : "image";
   // (macOS labels TypeScript ".ts" files video/mp2t — those aren't videos either.)
-  if (mime.startsWith("video/")) return /x-msvideo|x-ms-wmv|x-ms-asf|x-flv|3gpp|mpeg$|mp2t/.test(mime) ? null : "video";
+  if (mime.startsWith("video/")) return /x-msvideo|x-ms-wmv|x-ms-asf|x-flv|3gpp|mpeg$|mp2t/.test(mime) ? "file" : "video";
   if (mime.startsWith("audio/")) return "voice";
   if (mime.startsWith("text/") || TEXT_MIME.has(mime)) return "text";
-  return null;
+  return "file";
 }
 
 /** Short reason + longer hint for a file that detectKind rejected. */

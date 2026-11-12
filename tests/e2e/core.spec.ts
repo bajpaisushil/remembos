@@ -1,6 +1,7 @@
 // Core flows: pages render, upload-first home, adding things (files, paste, notes), search answers,
 // item page + "where is this stored", theme, delete everything. Runs on desktop and phone viewports.
 import { expect, test } from "@playwright/test";
+import { strToU8, zipSync } from "fflate";
 import {
   bySource,
   expectNoHorizontalScroll,
@@ -181,12 +182,41 @@ test("text and PDF files become searchable memories; items appear instantly", as
   await expect(page.getByTestId("search-result").first()).toHaveAttribute("data-item-id", doc.id);
 });
 
-test("unsupported files are refused with a clear message and nothing is stored", async ({ page }) => {
+test("any file type is kept: binary files by name, IFC and Word files by the text inside", async ({ page }) => {
   await presetSettings(page);
   await page.goto("/");
-  await upload(page, { name: "setup.exe", mimeType: "application/x-msdownload", buffer: Buffer.from("MZ binary") });
-  await expect(page.locator("[data-sonner-toast]").filter({ hasText: /skipped|isn.t supported|can.t/i }).first()).toBeVisible();
-  expect(await storedItems(page)).toEqual([]);
+  const ifc = [
+    "ISO-10303-21;",
+    "DATA;",
+    "#12= IFCPROJECT('2O2Fr$t4X7Zf8NOew3FLOH',#41,'Harbor Tower',$,$,$,$,(#20),#9);",
+    "#55= IFCWALLSTANDARDCASE('1kTvXnbbzCWw8lcMd1dR4o',#41,'Basic Wall:Exterior - Brick on CMU',$,$,#60,#70,'338492');",
+    "ENDSEC;END-ISO-10303-21;",
+  ].join("\n");
+  const docx = Buffer.from(
+    zipSync({
+      "[Content_Types].xml": strToU8('<?xml version="1.0"?><Types/>'),
+      "word/document.xml": strToU8(
+        '<w:document><w:body><w:p><w:r><w:t>Quarterly kiln maintenance plan for the pottery studio</w:t></w:r></w:p></w:body></w:document>',
+      ),
+    }),
+  );
+  await page.getByTestId("global-file-input").setInputFiles([
+    { name: "setup.exe", mimeType: "application/x-msdownload", buffer: Buffer.from([0x4d, 0x5a, 0x90, 0, 3, 0, 0, 0, 4, 0, 0, 0, 0xff, 0xff]) },
+    { name: "office-tower.rvt", mimeType: "application/octet-stream", buffer: Buffer.from([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1, 0, 0, 0, 0]) },
+    { name: "tower.ifc", mimeType: "", buffer: Buffer.from(ifc) },
+    { name: "kiln-plan.docx", mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", buffer: docx },
+  ]);
+  for (const name of ["setup.exe", "office-tower.rvt", "tower.ifc", "kiln-plan.docx"]) {
+    const item = await waitForReady(page, bySource(name), 30_000);
+    expect(item.kind, name).toBe("file");
+    expect(item.hasFile, name).toBe(1);
+  }
+  await search(page, "office tower");
+  await expect(page.getByTestId("search-result").first()).toContainText("office-tower");
+  await search(page, "Harbor Tower brick");
+  await expect(page.getByTestId("search-result").first()).toContainText("tower");
+  await search(page, "kiln maintenance");
+  await expect(page.getByTestId("search-result").first()).toContainText("kiln-plan");
 });
 
 test("item page: open original, where it is stored, and the storage explorer", async ({ page, context, isMobile, baseURL }) => {

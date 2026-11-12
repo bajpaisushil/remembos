@@ -52,3 +52,10 @@ export function friendlyError(err: unknown): string {
   }
   return "Something went wrong while reading this file. Retry, or try a different copy of the file.";
 }
+
+/**
+ * Saved on a memory that couldn't be read because an AI model wasn't on this device yet and the internet was
+ * off. Such memories are processed again automatically when the connection returns (see bootstrap).
+ */
+export const OFFLINE_WAIT_MESSAGE =
+  "Waiting for internet: reading this needs a one-time download of an AI model. It'll be read automatically when you're back online.";

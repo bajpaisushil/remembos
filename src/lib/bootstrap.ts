@@ -37,9 +37,59 @@ export function bootstrap(): () => void {
     }
   });
 
+  // Connection changes: catch up on memories that waited for the internet, and warn (once) when the
+  // connection drops before Remembos was set up for offline use.
+  const onOnline = () => {
+    void retryWaitingForInternet();
+    void import("./offline").then((m) => m.refreshOfflineReadiness());
+  };
+  const onOffline = () => void warnIfNotReadyForOffline();
+  window.addEventListener("online", onOnline);
+  window.addEventListener("offline", onOffline);
+  if (navigator.onLine) idle(() => void retryWaitingForInternet());
+  else idle(() => void warnIfNotReadyForOffline());
+
   return () => {
     started = false;
     stopWatcher();
     removePaste();
+    window.removeEventListener("online", onOnline);
+    window.removeEventListener("offline", onOffline);
   };
+}
+
+/** Memories that couldn't be read offline (an AI model wasn't downloaded yet) — read them now. */
+async function retryWaitingForInternet(): Promise<void> {
+  try {
+    const { OFFLINE_WAIT_MESSAGE } = await import("./ingest/errors");
+    const waiting = await db.items
+      .where("status")
+      .equals("error")
+      .filter((i) => i.error === OFFLINE_WAIT_MESSAGE)
+      .primaryKeys();
+    if (!waiting.length) return;
+    const { retryItem } = await import("./ingest");
+    for (const id of waiting) await retryItem(id as string).catch(() => {});
+  } catch (err) {
+    console.warn("[remembos] couldn't resume memories waiting for internet", err);
+  }
+}
+
+let warnedOffline = false;
+
+/** Gone offline before finishing the offline setup → one calm notice with the steps. */
+async function warnIfNotReadyForOffline(): Promise<void> {
+  if (warnedOffline) return;
+  const { refreshOfflineReadiness, openOfflineSetup } = await import("./offline");
+  const readiness = await refreshOfflineReadiness();
+  if (readiness.ready || navigator.onLine) return;
+  warnedOffline = true;
+  const { toast } = await import("sonner");
+  toast.warning("You're offline — Remembos isn't fully set up for it yet", {
+    id: "offline-not-ready",
+    description:
+      "Browsing, keyword search and adding things keep working. Reading screenshots, meaning search and voice notes need a one-time download first; what you add now is read automatically once you're back online.",
+    duration: 12_000,
+    action: { label: "Offline steps", onClick: openOfflineSetup },
+  });
 }

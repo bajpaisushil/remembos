@@ -1,5 +1,6 @@
 // The per-file pipeline: extract → thumbnail → chunk → entities → save (status "ready") → keyword index.
 // Embedding for meaning search happens afterwards in the queue, outside the processing slot.
+import { extractGenericFile } from "./extract-file";
 import { db } from "../db";
 import { deriveSummary, deriveTitle } from "../nlp/chunk";
 import { getSettings } from "../settings";
@@ -37,6 +38,8 @@ async function extract(item: MemoryItem, blob: Blob, ctx: ExtractContext): Promi
       return extractVoice(blob, ctx);
     case "video":
       return extractVideo(blob, ctx);
+    case "file":
+      return extractGenericFile(blob, item.sourceName ?? "", ctx);
     default:
       ctx.setStage("reading", "Reading text…");
       return extractTextFile(blob, item.sourceName ?? "", item.mimeType);

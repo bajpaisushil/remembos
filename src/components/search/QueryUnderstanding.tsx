@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import { Badge, ENTITY_ICONS, KindIcon, Spinner, Tooltip } from "@/components/ui";
 import { embedderStatus } from "@/lib/ai/embedder";
 import { ENTITY_META, MODELS, ROUTES } from "@/lib/config";
+import { openOfflineSetup } from "@/lib/offline";
 import { useSettings } from "@/lib/settings";
 import { useStore } from "@/lib/store";
 import type { ParsedQuery, SearchResponse } from "@/lib/types";
@@ -113,6 +114,15 @@ export function MeaningStatus({ response }: { response: SearchResponse }) {
           Meaning search off · <span className="text-brand-700 dark:text-brand-300">Turn on</span>
         </Badge>
       </Link>
+    );
+  } else if (/you.re offline/i.test(response.semanticNote)) {
+    tip = "Meaning search needs a one-time download before it works offline. Exact words still work now.";
+    content = (
+      <button type="button" onClick={openOfflineSetup} className="rounded-full" data-testid="meaning-status-offline">
+        <Badge tone="warning" className="transition-colors hover:bg-amber-500/15">
+          Exact words only offline · <span className="underline underline-offset-2">Set up</span>
+        </Badge>
+      </button>
     );
   } else if (model.state === "error") {
     tip = "The meaning-search model couldn't load (offline or blocked). Exact words still work.";

@@ -7,6 +7,7 @@ import { HomeHero } from "@/components/ingest/HomeHero";
 import { PrivacyCard } from "@/components/ingest/PrivacyCard";
 import { RecentMemories } from "@/components/ingest/RecentMemories";
 import { ToolTiles } from "@/components/ingest/ToolTiles";
+import { OfflineSetupCard } from "@/components/shell/OfflineSetup";
 import { Container } from "@/components/ui/PageHeader";
 
 export default function Home() {
@@ -15,6 +16,9 @@ export default function Home() {
       <HomeHero />
       <DropZone />
       <HomeGuide />
+      <div className="mt-6 empty:hidden">
+        <OfflineSetupCard />
+      </div>
       <div className="mt-12 flex flex-col gap-12 sm:mt-16 sm:gap-16">
         <RecentMemories />
         <ToolTiles />

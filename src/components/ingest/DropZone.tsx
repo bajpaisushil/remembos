@@ -34,8 +34,9 @@ const FORMATS: { label: string; wide?: boolean }[] = [
   { label: "M4A" },
   { label: "WAV", wide: true },
   { label: "TXT" },
-  { label: "MD", wide: true },
-  { label: "CSV", wide: true },
+  { label: "DOCX", wide: true },
+  { label: "IFC", wide: true },
+  { label: "ZIP", wide: true },
 ];
 
 type FocusTarget = "upload" | "paste";
@@ -319,7 +320,7 @@ export function DropZone({ className }: { className?: string }) {
             </li>
           ))}
           <li className="px-1 text-[11px] font-medium text-zinc-500 dark:text-zinc-400">
-            + more · up to {formatBytes(LIMITS.maxFileBytes, 0)} each
+            any file · up to {formatBytes(LIMITS.maxFileBytes, 0)} each
           </li>
         </ul>
 

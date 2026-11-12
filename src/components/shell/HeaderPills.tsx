@@ -2,14 +2,16 @@
 
 import { ArrowRight, CloudDownload, Cpu, HardDrive, Search, ShieldCheck, UserX, WifiOff } from "lucide-react";
 import Link from "next/link";
-import { useSyncExternalStore } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/Button";
 import { Popover } from "@/components/ui/Popover";
 import { ProgressRing } from "@/components/ui/Progress";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { ROUTES, STORAGE_THRESHOLDS } from "@/lib/config";
+import { offlineReadiness, openOfflineSetup, refreshOfflineReadiness } from "@/lib/offline";
 import { useStorageInfo } from "@/lib/storage/monitor";
+import { useStore } from "@/lib/store";
 import { cn, formatBytes } from "@/lib/utils";
 
 /** "On-device" shield pill with a popover explaining that nothing leaves the browser. */
@@ -133,54 +135,81 @@ export function useOnline(): boolean {
   );
 }
 
-const OFFLINE_SUMMARY = "Offline — everything still works except first-time model downloads";
 
-/** Shown only while the device is offline: reassures that Remembos keeps working. */
+/** Shown only while the device is offline: says what works now, and what still needs a one-time setup. */
 export function OfflinePill() {
   const online = useOnline();
+  const readiness = useStore(offlineReadiness);
+  useEffect(() => {
+    if (!online) void refreshOfflineReadiness();
+  }, [online]);
   if (online) return null;
+  const ready = readiness.ready;
+  const missing = [
+    readiness.models.ocr ? null : "reading screenshots",
+    readiness.models.embedder === false ? "meaning search" : null,
+    readiness.models.whisper === false ? "voice transcription" : null,
+  ].filter(Boolean) as string[];
+  const summary = ready ? "Offline — everything works" : "Offline — some features need a one-time setup";
   return (
     <Popover
-      label={OFFLINE_SUMMARY}
+      label={summary}
       data-testid="offline-pill"
       triggerClassName={cn(
         "inline-flex h-8 max-w-full animate-slide-up items-center gap-1.5 rounded-full border px-3 text-[13px] font-medium shadow-card transition-colors",
-        "border-amber-500/30 bg-amber-50 text-amber-900 hover:bg-amber-100",
-        "dark:border-amber-400/25 dark:bg-ink-800 dark:text-amber-200 dark:hover:bg-ink-700",
+        ready
+          ? "border-emerald-500/30 bg-emerald-50 text-emerald-900 hover:bg-emerald-100 dark:border-emerald-400/25 dark:bg-ink-800 dark:text-emerald-200 dark:hover:bg-ink-700"
+          : "border-amber-500/30 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-400/25 dark:bg-ink-800 dark:text-amber-200 dark:hover:bg-ink-700",
       )}
       trigger={
         <>
           <WifiOff aria-hidden className="size-3.5 shrink-0" />
           <span className="truncate">
-            Offline<span className="hidden sm:inline"> — everything still works except first-time model downloads</span>
+            Offline<span className="hidden sm:inline">{ready ? " — everything works" : " — some features need setup"}</span>
           </span>
         </>
       }
-      className="w-[20rem]"
+      className="w-[21rem]"
     >
       <div className="flex items-start gap-3">
-        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-amber-500/15 text-amber-700 dark:bg-amber-400/15 dark:text-amber-200">
+        <span
+          className={cn(
+            "grid size-10 shrink-0 place-items-center rounded-xl",
+            ready ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-200" : "bg-amber-500/15 text-amber-700 dark:text-amber-200",
+          )}
+        >
           <WifiOff aria-hidden className="size-5" />
         </span>
         <div>
           <p className="text-[15px] font-semibold text-zinc-900 dark:text-white">You&apos;re offline</p>
-          <p className="mt-0.5 text-[13px] leading-snug text-muted">Everything still works except first-time model downloads.</p>
+          <p className="mt-0.5 text-[13px] leading-snug text-muted">
+            {ready ? "Remembos is set up for offline — everything works." : "Remembos wasn't fully set up for offline before the internet went away."}
+          </p>
         </div>
       </div>
       <ul className="mt-4 space-y-2.5 text-[13px] text-zinc-600 dark:text-zinc-300">
         <li className="flex gap-2.5">
           <HardDrive aria-hidden className="mt-0.5 size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
-          Adding, browsing and searching your memories keeps working — they live on this device.
+          Adding, browsing and keyword search keep working — your memories live on this device.
         </li>
-        <li className="flex gap-2.5">
-          <Search aria-hidden className="mt-0.5 size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
-          AI helpers you&apos;ve already used (text reading, transcription, meaning search) work offline.
-        </li>
-        <li className="flex gap-2.5">
-          <CloudDownload aria-hidden className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
-          A helper you haven&apos;t used yet downloads once you&apos;re back online.
-        </li>
+        {ready ? (
+          <li className="flex gap-2.5">
+            <Search aria-hidden className="mt-0.5 size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+            Reading screenshots, meaning search and voice notes work too.
+          </li>
+        ) : (
+          <li className="flex gap-2.5">
+            <CloudDownload aria-hidden className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
+            {missing.length ? `Needs a one-time download first: ${missing.join(", ")}. ` : ""}Screenshots you add now are kept and read
+            automatically when you&apos;re back online.
+          </li>
+        )}
       </ul>
+      {ready ? null : (
+        <Button size="sm" variant="secondary" className="mt-4 w-full" onClick={openOfflineSetup} data-testid="offline-pill-steps">
+          How to set up offline use
+        </Button>
+      )}
     </Popover>
   );
 }

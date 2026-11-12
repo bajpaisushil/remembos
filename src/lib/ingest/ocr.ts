@@ -5,12 +5,12 @@
 // never leave the device. The worker is terminated after 90 s without work to give memory back, and is
 // recreated automatically when the OCR languages setting changes.
 import type { LoggerMessage, Page, Worker as TesseractWorker } from "tesseract.js";
-import { MODELS, OCR_LANG_DEFAULT } from "../config";
+import { MODELS, OCR_LANG_DEFAULT, STORAGE_NAMES } from "../config";
 import { getSettings } from "../settings";
 import { createStore } from "../store";
 import type { ModelStatus } from "../types";
 import { cleanText } from "../utils";
-import { IngestError } from "./errors";
+import { IngestError, OFFLINE_WAIT_MESSAGE } from "./errors";
 import { modelDownloadToast } from "./model-toast";
 
 export const ocrStatus = createStore<ModelStatus>({ state: "idle" });
@@ -57,7 +57,26 @@ function scheduleIdle(): void {
   idleTimer = setTimeout(() => void disposeOcr(), IDLE_MS);
 }
 
+/** Can the text reader start without internet? (its worker code is in the offline cache and its language data is saved) */
+async function availableOffline(): Promise<boolean> {
+  try {
+    const hasLangData =
+      typeof indexedDB.databases === "function" && (await indexedDB.databases()).some((d) => d.name === STORAGE_NAMES.ocrDb);
+    if (!hasLangData) return false;
+    if (typeof caches === "undefined" || !(await caches.has(STORAGE_NAMES.cdnCache))) return !!getSettings().offlinePreparedAt;
+    const keys = await (await caches.open(STORAGE_NAMES.cdnCache)).keys();
+    // Set up through "Get ready for offline" / install: the browser's own cache can also serve the code.
+    return keys.some((r) => /tesseract\.js@[^/]+\/dist\/worker\.min\.js/.test(r.url)) || !!getSettings().offlinePreparedAt;
+  } catch {
+    return false;
+  }
+}
+
 async function createOcrWorker(langs: string): Promise<TesseractWorker> {
+  // Offline and never downloaded: don't start a worker that can only fail — the memory waits for the internet.
+  if (typeof navigator !== "undefined" && navigator.onLine === false && !(await availableOffline())) {
+    throw new IngestError(OFFLINE_WAIT_MESSAGE);
+  }
   const myGeneration = ++generation;
   ocrStatus.set({ state: "loading", progress: 0 });
   const notice = modelDownloadToast({
@@ -101,7 +120,11 @@ async function createOcrWorker(langs: string): Promise<TesseractWorker> {
     console.warn("[remembos] OCR failed to start", err);
     ocrStatus.set({ state: "error", error: "Couldn't download the text reader. Check your connection, then retry." });
     notice.fail();
-    throw new IngestError("Couldn't load the text reader (a one-time download). Check your connection, then retry.");
+    throw new IngestError(
+      typeof navigator !== "undefined" && navigator.onLine === false
+        ? OFFLINE_WAIT_MESSAGE
+        : "Couldn't load the text reader (a one-time download). Check your connection, then retry.",
+    );
   }
 }
 

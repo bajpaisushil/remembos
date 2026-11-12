@@ -189,6 +189,7 @@ const KIND_LABELS: Record<MemoryItem["kind"], string> = {
   image: "Screenshot / photo",
   pdf: "PDF",
   video: "Video",
+  file: "File",
   voice: "Voice recording",
   text: "Copied text",
   note: "Note",

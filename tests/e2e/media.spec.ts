@@ -105,7 +105,7 @@ test("Get ready for offline → screenshots are read with the internet off", asy
 
   await page.goto("/data/");
   await page.getByTestId("offline-ready").click();
-  await expect(page.getByTestId("offline-ready-card")).toContainText("Ready for offline", { timeout: 150_000 });
+  await expect(page.getByTestId("offline-step-done")).toHaveAttribute("data-state", "done", { timeout: 150_000 });
 
   await context.setOffline(true);
   await page.goto("/");

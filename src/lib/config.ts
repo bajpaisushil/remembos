@@ -71,7 +71,9 @@ export const LIMITS = {
   /** Warn (but allow) files above this. */
   largeFileBytes: 50 * 1024 * 1024,
   /** Refuse files above this — browsers struggle beyond it. */
-  maxFileBytes: 300 * 1024 * 1024,
+  maxFileBytes: 500 * 1024 * 1024,
+  /** For "file" memories: how much of a text-based file (IFC, STEP, XML, code…) is read for search. */
+  maxGenericTextBytes: 20 * 1024 * 1024,
   /** Max PDF pages to OCR when a PDF has no text layer. */
   maxOcrPdfPages: 30,
   /** Max video frames to OCR (evenly sampled) and the longest video we OCR frames for. */
@@ -170,6 +172,16 @@ export const KIND_META: Record<
     ring: "ring-emerald-500/30",
     gradient: "from-emerald-500 to-teal-400",
   },
+  file: {
+    label: "File",
+    plural: "Any other file",
+    blurb: "Stored as-is — IFC, RVT, ZIP, DOCX, CAD…",
+    accept: "Any file type",
+    color: "text-slate-600 dark:text-slate-300",
+    bg: "bg-slate-500/10",
+    ring: "ring-slate-500/30",
+    gradient: "from-slate-500 to-zinc-400",
+  },
 };
 
 export const ENTITY_META: Record<EntityType, { label: string; color: string; hex: string }> = {
@@ -191,4 +203,5 @@ export const KIND_HEX: Record<MemoryKind, string> = {
   voice: "#f59e0b",
   text: "#0ea5e9",
   note: "#10b981",
+  file: "#64748b",
 };

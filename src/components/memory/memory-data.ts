@@ -533,6 +533,7 @@ export const KIND_FILTER_LABELS: Record<MemoryKind, string> = {
   image: "Images",
   pdf: "PDFs",
   video: "Videos",
+  file: "Files",
   voice: "Voice",
   text: "Text",
   note: "Notes",

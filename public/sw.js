@@ -343,14 +343,23 @@ button{font:inherit;font-weight:600;color:#fff;border:0;border-radius:12px;paddi
 
 const CDN_CACHE = "remembos-cdn";
 
-/** Versioned jsDelivr URLs never change, so the first copy is good forever. Never caches opaque responses. */
+/**
+ * Versioned jsDelivr URLs never change, so the first copy is good forever. Scripts loaded with importScripts()
+ * arrive as opaque "no-cors" requests, which can't be stored safely — so they are fetched again in CORS mode
+ * (jsDelivr allows it) and that readable copy is kept and served.
+ */
 async function cdnCacheFirst(request) {
   const cache = await caches.open(CDN_CACHE);
-  const hit = await cache.match(request, { ignoreVary: true });
+  const key = request.url;
+  const hit = await cache.match(key, { ignoreVary: true });
   if (hit) return hit;
-  const res = await fetch(request);
-  if (res.ok && res.type !== "opaque" && /@v?\d/.test(new URL(request.url).pathname)) {
-    cache.put(request, res.clone()).catch(() => {});
+  const versioned = /@v?\d/.test(new URL(key).pathname);
+  if (!versioned) return fetch(request);
+  try {
+    const res = await fetch(new Request(key, { mode: "cors", credentials: "omit" }));
+    if (res.ok) cache.put(key, res.clone()).catch(() => {});
+    return res;
+  } catch {
+    return fetch(request);
   }
-  return res;
 }

@@ -21,7 +21,7 @@
  */
 import type MiniSearch from "minisearch";
 import type { SearchResult as MiniSearchResult } from "minisearch";
-import { embedQuery, embedTexts, embedderStatus, warmupEmbedder } from "../ai/embedder";
+import { embedQuery, embedTexts, embedderStatus, warmupEmbedder, isEmbedderCached } from "../ai/embedder";
 import { EMBEDDING_DIM } from "../config";
 import { db } from "../db";
 import { parseQuery, tokenize } from "../nlp/query";
@@ -119,6 +119,7 @@ const NOTE_OFF = "Meaning search is off in settings";
 const NOTE_LOADING = "Meaning search is downloading…";
 const NOTE_UNAVAILABLE = "Model unavailable — showing keyword matches";
 const NOTE_PREPARING = "Meaning search is still preparing your memories";
+const NOTE_OFFLINE_SETUP = "Meaning search needs a one-time download — you're offline";
 
 // ---------- State ----------
 
@@ -550,6 +551,10 @@ async function semanticSearch(
   if (!getSettings().semanticSearch) return { matches: [], used: false, note: NOTE_OFF };
   if (!state.mini?.documentCount) return { matches: [], used: false }; // nothing to search yet
 
+  if (embedderStatus.get().state !== "ready" && typeof navigator !== "undefined" && navigator.onLine === false && !(await isEmbedderCached())) {
+    // Offline and the model was never downloaded: don't try (it can only fail) — the status pill offers the setup steps.
+    return { matches: [], used: false, note: NOTE_OFFLINE_SETUP };
+  }
   if (embedderStatus.get().state !== "ready") {
     // Never wait for the model: answer with keywords now, get meaning search ready for next time.
     warmupEmbedder({ allowDownload: true });

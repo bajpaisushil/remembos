@@ -5,11 +5,10 @@
  * transcriber) with what they do, their size, whether they are downloaded / loading / ready, and
  * a way to download meaning search now or remove every downloaded model file.
  */
-import { AudioLines, BrainCircuit, CircleCheck, CloudDownload, Cpu, RefreshCw, ScanText, Trash2, TriangleAlert, WifiOff } from "lucide-react";
+import { AudioLines, BrainCircuit, CircleCheck, CloudDownload, Cpu, RefreshCw, ScanText, Trash2, TriangleAlert } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { warmupEmbedder, embedderStatus } from "@/lib/ai/embedder";
-import { offlineDownloadBytes, offlinePrep, prepareOffline } from "@/lib/offline";
 import { MODELS, OCR_LANG_DEFAULT } from "@/lib/config";
 import { ocrStatus } from "@/lib/ingest/ocr";
 import { whisperStatus } from "@/lib/ingest/transcribe";
@@ -24,6 +23,7 @@ import { Progress } from "@/components/ui/Progress";
 import { cn, formatBytes } from "@/lib/utils";
 import { modelCacheStore, refreshModelCaches } from "./model-cache";
 import { IconChip, InlineSkeleton, Panel, type ChipTone } from "./shared";
+import { OfflineSetupSteps } from "@/components/shell/OfflineSetup";
 import { ocrLanguageNames, parseOcrLanguages } from "./ocr-languages";
 
 interface StatusView {
@@ -76,25 +76,6 @@ export function ModelsPanel() {
     void backfillEmbeddings();
   }
 
-  const prep = useStore(offlinePrep);
-  const preparing = prep.state === "preparing";
-  const offlineReady =
-    prep.state === "ready" ||
-    (!!settings.offlinePreparedAt &&
-      caches.ocr !== false &&
-      (!settings.semanticSearch || caches.embedder !== false) &&
-      (!settings.transcribeAudio || caches.whisper !== false)) ||
-    (ocr.state === "ready" &&
-      (!settings.semanticSearch || emb.state === "ready") &&
-      (!settings.transcribeAudio || whisper.state === "ready"));
-  const offlineBytes = offlineDownloadBytes(settings);
-
-  /** Download every model now, so screenshots, meaning search and voice also work without internet. */
-  async function getReadyForOffline() {
-    await prepareOffline("button");
-    await refreshModelCaches();
-  }
-
   async function removeModels() {
     const { clearModelCaches } = await import("@/lib/storage/clear");
     const freed = await clearModelCaches();
@@ -121,30 +102,9 @@ export function ModelsPanel() {
       description="Small helpers that run inside your browser. Only the model files are downloaded (once, from jsDelivr and Hugging Face) — your memories never leave this device."
       data-testid="models-panel"
     >
-      <div
-        className="mb-4 flex flex-col gap-3 rounded-2xl border border-sky-500/20 bg-sky-500/[0.06] p-4 sm:flex-row sm:items-center sm:justify-between"
-        data-testid="offline-ready-card"
-      >
-        <div className="flex min-w-0 items-start gap-3">
-          <IconChip tone="sky"><WifiOff /></IconChip>
-          <div className="min-w-0">
-            <p className="font-medium text-zinc-900 dark:text-zinc-100">{offlineReady ? "Ready for offline" : "Get ready for offline"}</p>
-            <p className="text-sm text-muted">
-              {offlineReady
-                ? "Every AI model is on this device — Remembos works fully without internet."
-                : `Download every AI model now (about ${formatBytes(offlineBytes)}, once) so reading screenshots, meaning search and voice notes also work without internet.`}
-            </p>
-          </div>
-        </div>
-        {offlineReady ? (
-          <Badge tone="success" icon={<CircleCheck />}>
-            Offline ready
-          </Badge>
-        ) : (
-          <Button size="sm" leftIcon={<CloudDownload />} onClick={() => void getReadyForOffline()} loading={preparing} data-testid="offline-ready" className="shrink-0">
-            Get ready for offline
-          </Button>
-        )}
+      <div className="mb-5 rounded-2xl border border-sky-500/20 bg-sky-500/[0.05] p-4" data-testid="offline-ready-card">
+        <p className="mb-3 font-medium text-zinc-900 dark:text-zinc-100">Use Remembos without internet</p>
+        <OfflineSetupSteps />
       </div>
       <ul className="flex flex-col gap-3">
         <ModelRow

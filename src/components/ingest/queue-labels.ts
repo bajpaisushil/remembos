@@ -38,6 +38,7 @@ const READING_FALLBACK: Record<MemoryKind, string> = {
   image: "Opening image…",
   pdf: "Opening PDF…",
   video: "Opening video…",
+  file: "Saving file…",
   voice: "Checking the recording…",
   text: "Reading text…",
   note: "Reading text…",

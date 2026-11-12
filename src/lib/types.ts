@@ -8,9 +8,10 @@ export type MemoryKind =
   | "voice" // audio files + in-app voice recordings (→ local Whisper) and transcript files (.vtt/.srt)
   | "video" // videos & screen recordings (mp4/mov/webm/m4v) → transcript + OCR of sampled frames
   | "text" // copied/pasted text, .txt/.md/.csv/.json/.html files
-  | "note"; // notes typed inside Remembos
+  | "note" // notes typed inside Remembos
+  | "file"; // any other file (IFC, RVT, ZIP, DOCX, CAD…) — stored as-is; text-based formats are also searched
 
-export const MEMORY_KINDS: MemoryKind[] = ["image", "pdf", "video", "voice", "text", "note"];
+export const MEMORY_KINDS: MemoryKind[] = ["image", "pdf", "video", "voice", "text", "note", "file"];
 
 export type ItemStatus = "processing" | "ready" | "error";
 

@@ -2,7 +2,7 @@
 // voice transcription work without internet. Runs automatically when Remembos is installed as an app (and on
 // the first launch of an installed app), and from the "Get ready for offline" button.
 import { toast } from "sonner";
-import { MODELS } from "./config";
+import { EMBEDDING_MODEL, MODELS, STORAGE_NAMES, WHISPER_MODEL } from "./config";
 import { getSettings, updateSettings, type Settings } from "./settings";
 import { createStore } from "./store";
 import { formatBytes } from "./utils";
@@ -55,6 +55,7 @@ export function prepareOffline(reason: "install" | "first-launch" | "button" = "
       }
       updateSettings({ offlinePreparedAt: Date.now() });
       offlinePrep.set({ state: "ready" });
+      void refreshOfflineReadiness();
       toast.success("Ready for offline", {
         id,
         description: "Remembos now works fully without internet — reading screenshots, meaning search and voice notes included.",
@@ -80,4 +81,89 @@ export function prepareOffline(reason: "install" | "first-launch" | "button" = "
 export function prepareOfflineIfNeeded(): void {
   if (getSettings().offlinePreparedAt || !navigator.onLine) return;
   void prepareOffline("first-launch");
+}
+
+// ---------------------------------------------------------------------------------------------
+// Readiness: what still needs to happen before the internet can be switched off
+// ---------------------------------------------------------------------------------------------
+
+export interface OfflineReadiness {
+  /** A check has completed at least once. */
+  checked: boolean;
+  /** The service worker controls this page and its offline copy exists. */
+  appSaved: boolean;
+  /** Running as an installed app (recommended, not required). */
+  installed: boolean;
+  /** Per model: on this device? `null` = not needed (switched off in settings). */
+  models: { ocr: boolean; embedder: boolean | null; whisper: boolean | null };
+  /** Everything needed to work fully offline is on this device. */
+  ready: boolean;
+}
+
+export const offlineReadiness = createStore<OfflineReadiness>({
+  checked: false,
+  appSaved: false,
+  installed: false,
+  models: { ocr: false, embedder: null, whisper: null },
+  ready: false,
+});
+
+async function cachedModel(model: string): Promise<boolean> {
+  try {
+    if (typeof caches === "undefined" || !(await caches.has(STORAGE_NAMES.modelCaches[0]))) return false;
+    const keys = await (await caches.open(STORAGE_NAMES.modelCaches[0])).keys();
+    return keys.some((r) => r.url.includes(`/${model}/`) && /\.onnx(?:$|\?)/.test(r.url));
+  } catch {
+    return false;
+  }
+}
+
+async function ocrDataSaved(): Promise<boolean> {
+  try {
+    if (typeof indexedDB === "undefined" || typeof indexedDB.databases !== "function") return false;
+    return (await indexedDB.databases()).some((d) => d.name === STORAGE_NAMES.ocrDb);
+  } catch {
+    return false;
+  }
+}
+
+async function appCopySaved(): Promise<boolean> {
+  try {
+    if (!("serviceWorker" in navigator) || !navigator.serviceWorker.controller) return false;
+    return (await caches.keys()).some((k) => k.startsWith(STORAGE_NAMES.swCachePrefix));
+  } catch {
+    return false;
+  }
+}
+
+let checking: Promise<OfflineReadiness> | null = null;
+
+/** Re-check readiness (cheap: cache and database listings only). */
+export function refreshOfflineReadiness(): Promise<OfflineReadiness> {
+  if (typeof window === "undefined") return Promise.resolve(offlineReadiness.get());
+  checking ??= (async () => {
+    try {
+      const s = getSettings();
+      const { installState } = await import("./pwa");
+      const [appSaved, ocr, embedder, whisper] = await Promise.all([
+        appCopySaved(),
+        ocrDataSaved(),
+        s.semanticSearch ? cachedModel(EMBEDDING_MODEL) : Promise.resolve(null),
+        s.transcribeAudio ? cachedModel(WHISPER_MODEL) : Promise.resolve(null),
+      ]);
+      const models = { ocr, embedder, whisper };
+      const ready = appSaved && ocr && embedder !== false && whisper !== false;
+      const next: OfflineReadiness = { checked: true, appSaved, installed: installState.get().installed, models, ready };
+      offlineReadiness.set(next);
+      return next;
+    } finally {
+      checking = null;
+    }
+  })();
+  return checking;
+}
+
+/** Open the "Use Remembos offline" steps. */
+export function openOfflineSetup(): void {
+  void import("./ui-state").then((m) => m.offlineSetupOpen.set(true));
 }

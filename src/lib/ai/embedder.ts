@@ -307,14 +307,21 @@ function loadFailed(gen: number, err: Error): void {
   const shouldToast = reason === "user" || toastWasVisible || (reason === "needed" && now - lastErrorToastAt > ERROR_TOAST_GAP_MS);
   if (shouldToast) {
     lastErrorToastAt = now;
-    toast.error(offline ? "Meaning search needs internet once" : "Couldn't load meaning search", {
-      id: TOAST_ID,
-      description: offline
-        ? `Connect to download it (${approxSize()}, one time). Keyword search still works.`
-        : "The download was blocked or failed. Keyword search still works.",
-      duration: 10_000,
-      action: { label: "Try again", onClick: () => void loadEmbedder().catch(noop) },
-    });
+    if (offline) {
+      toast.info("Meaning search isn't set up for offline yet", {
+        id: TOAST_ID,
+        description: `It needs a one-time download (${approxSize()}) while you're online. Exact-word search works meanwhile.`,
+        duration: 10_000,
+        action: { label: "Offline steps", onClick: () => void import("../offline").then((m) => m.openOfflineSetup()) },
+      });
+    } else {
+      toast.error("Couldn't load meaning search", {
+        id: TOAST_ID,
+        description: "The download was blocked or failed. Keyword search still works.",
+        duration: 10_000,
+        action: { label: "Try again", onClick: () => void loadEmbedder().catch(noop) },
+      });
+    }
   } else if (toastWasVisible) {
     toast.dismiss(TOAST_ID);
   }

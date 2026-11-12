@@ -24,6 +24,7 @@ const KIND_GLOW: Record<FileKind, string> = {
   image: "139 92 246",
   pdf: "244 63 94",
   video: "59 130 246",
+  file: "100 116 139",
   voice: "245 158 11",
   text: "14 165 233",
 };
@@ -49,6 +50,7 @@ const TILES: Tile[] = [
   kindTile("image", "Screenshots & photos", "PNG · JPG · HEIC · WEBP"),
   kindTile("pdf", "PDFs & docs", "PDF — even scanned pages"),
   kindTile("video", "Videos & screen recordings", "MP4 · MOV · WEBM · M4V"),
+  kindTile("file", "Any other file", "IFC · RVT · ZIP · DOCX · anything"),
   kindTile("voice", "Voice & audio", "MP3 · M4A · WAV · OGG"),
   kindTile("text", "Text files", "TXT · MD · CSV · HTML"),
   { id: "paste", title: "Copied text", formats: "Links, chats, emails…", icon: <PasteIcon />, glow: "6 182 212" },
