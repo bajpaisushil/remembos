@@ -189,7 +189,8 @@ test("unsupported files are refused with a clear message and nothing is stored",
   expect(await storedItems(page)).toEqual([]);
 });
 
-test("item page: open original, where it is stored, and the storage explorer", async ({ page, context, isMobile }) => {
+test("item page: open original, where it is stored, and the storage explorer", async ({ page, context, isMobile, baseURL }) => {
+  const host = new URL(baseURL!).hostname;
   await presetSettings(page);
   await page.goto("/");
   await upload(page, { name: "receipt.txt", mimeType: "text/plain", buffer: Buffer.from("Receipt: blue ceramic teapot, 49 dollars, Harbor Street market.") });
@@ -214,7 +215,7 @@ test("item page: open original, where it is stored, and the storage explorer", a
     // Phones keep browser storage in a sandbox nobody can browse — the panel must say so instead of a path.
     await expect(where).toContainText(/can.t be browsed|sandbox|not browsable|backup/i);
   } else {
-    await expect(page.getByTestId("where-stored-path").first()).toContainText(/localhost/);
+    await expect(page.getByTestId("where-stored-path").first()).toContainText(host);
   }
 
   await page.getByTestId("open-explorer").first().click();
@@ -224,7 +225,7 @@ test("item page: open original, where it is stored, and the storage explorer", a
   await expect(card).toContainText("receipt.txt");
   await expect(page.getByTestId("explorer-item-address")).toContainText(item.id);
   if (isMobile) await expect(page.getByTestId("explorer-item-folder-sandboxed")).toBeVisible();
-  else await expect(page.getByTestId("explorer-item-folder").first()).toContainText(/localhost/);
+  else await expect(page.getByTestId("explorer-item-folder").first()).toContainText(host);
 });
 
 test("dark mode can be switched on and is remembered", async ({ page }) => {
