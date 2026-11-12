@@ -12,6 +12,11 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Third-party browser assets copied from node_modules by scripts/copy-vendor.mjs.
+    "public/vendor/**",
+    // Test run output.
+    "test-results/**",
+    "playwright-report/**",
   ]),
 ]);
 

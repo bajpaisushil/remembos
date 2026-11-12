@@ -3,17 +3,34 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "copy-vendor": "node scripts/copy-vendor.mjs",
+    "predev": "node scripts/copy-vendor.mjs",
     "dev": "next dev",
+    "prebuild": "node scripts/copy-vendor.mjs",
     "build": "next build",
-    "start": "next start",
-    "lint": "eslint"
+    "start": "node scripts/serve-out.mjs",
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit -p . --incremental false",
+    "test:unit": "playwright test --project=unit",
+    "test:e2e": "playwright test --project=desktop --project=mobile",
+    "test": "npm run typecheck && npm run lint && npm run build && playwright test",
+    "postbuild": "node scripts/precache-manifest.mjs"
   },
   "dependencies": {
+    "dexie": "^4.4.7",
+    "dexie-react-hooks": "^4.4.0",
+    "fflate": "^0.8.3",
+    "lucide-react": "^1.72.0",
+    "minisearch": "^7.2.0",
     "next": "16.4.6",
+    "pdfjs-dist": "^6.5.438",
     "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react-dom": "19.3.0",
+    "sonner": "^2.0.8",
+    "tesseract.js": "^7.0.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.65.0",
     "@tailwindcss/turbopack": "4.3.3",
     "@types/node": "^20",
     "@types/react": "^19",

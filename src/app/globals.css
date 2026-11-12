@@ -1,26 +1,557 @@
+/*
+ * Remembos design system — Tailwind v4, CSS-first.
+ *
+ * Visual language: a calm, magical second brain. Clean canvas, soft aurora glows,
+ * glassy hairline cards, an indigo → violet → fuchsia brand gradient, and quick,
+ * gentle motion that switches off under prefers-reduced-motion.
+ *
+ * Tokens defined here become utilities, e.g. `bg-canvas`, `bg-surface`, `bg-elevated`,
+ * `border-line`, `text-fg`, `text-muted`, `bg-brand-500`, `shadow-soft`, `shadow-lift`,
+ * `shadow-pop`, `shadow-glow`, `font-serif`, `ease-spring`, `animate-float`, …
+ */
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* Class-based dark mode: <html class="dark"> is set before first paint by the layout's inline script. */
+@custom-variant dark (&:where(.dark, .dark *));
 
+/* ---------- Fonts (CSS variables come from next/font on <html>) ---------- */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --font-serif: var(--font-instrument-serif), ui-serif, Georgia, Cambria, "Times New Roman", serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* ---------- Colors, shadows, motion ---------- */
+@theme static {
+  /* Brand: a violet that sits between indigo-500 and fuchsia-500. */
+  --color-brand-50: oklch(0.97 0.017 287);
+  --color-brand-100: oklch(0.942 0.034 287);
+  --color-brand-200: oklch(0.89 0.065 287);
+  --color-brand-300: oklch(0.81 0.112 287);
+  --color-brand-400: oklch(0.705 0.17 287);
+  --color-brand-500: oklch(0.6 0.232 287);
+  --color-brand-600: oklch(0.535 0.245 287);
+  --color-brand-700: oklch(0.47 0.222 287);
+  --color-brand-800: oklch(0.4 0.182 287);
+  --color-brand-900: oklch(0.35 0.142 287);
+  --color-brand-950: oklch(0.255 0.1 287);
+
+  /* Deep ink used for the dark canvas. */
+  --color-ink-950: #06060b;
+  --color-ink-900: #0a0a12;
+  --color-ink-850: #0f0f19;
+  --color-ink-800: #14141f;
+  --color-ink-700: #1c1c2a;
+  --color-ink-600: #282838;
+
+  /* Semantic surfaces (switch automatically in dark mode, see `.dark` below). */
+  --color-canvas: #fbfbfd;
+  --color-surface: #ffffff;
+  --color-elevated: #ffffff;
+  --color-line: rgb(228 228 231 / 0.75);
+  --color-line-strong: rgb(212 212 216);
+  --color-fg: #18181b;
+  --color-muted: #63636e;
+
+  /* Layered, slightly cool shadows. */
+  --shadow-soft: 0 1px 2px rgb(20 20 43 / 0.04), 0 2px 8px -2px rgb(20 20 43 / 0.06);
+  --shadow-card: 0 1px 2px rgb(20 20 43 / 0.04), 0 8px 24px -12px rgb(20 20 43 / 0.12);
+  --shadow-lift: 0 2px 6px rgb(20 20 43 / 0.05), 0 18px 40px -16px rgb(20 20 43 / 0.2);
+  --shadow-pop: 0 0 0 1px rgb(20 20 43 / 0.04), 0 12px 32px -8px rgb(20 20 43 / 0.18), 0 32px 80px -24px rgb(20 20 43 / 0.28);
+  --shadow-glow: 0 0 0 1px rgb(139 92 246 / 0.18), 0 10px 32px -8px rgb(139 92 246 / 0.5);
+
+  --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --animate-float: float 7s ease-in-out infinite;
+  --animate-float-slow: float 11s ease-in-out infinite;
+  --animate-shimmer: shimmer 1.6s linear infinite;
+  --animate-fade-in: fade-in 200ms ease-out both;
+  --animate-fade-out: fade-out 160ms ease-in both;
+  --animate-scale-in: scale-in 220ms var(--ease-spring) both;
+  --animate-scale-out: scale-out 150ms ease-in both;
+  --animate-pop-in: pop-in 160ms var(--ease-spring) both;
+  --animate-sheet-in: sheet-in 300ms var(--ease-spring) both;
+  --animate-sheet-out: sheet-out 180ms ease-in both;
+  --animate-slide-up: slide-up 320ms var(--ease-spring) both;
+  --animate-gradient-pan: gradient-pan 3s linear infinite;
+  --animate-pulse-dot: pulse-dot 2s ease-out infinite;
+  --animate-indeterminate: indeterminate 1.3s ease-in-out infinite;
+  --animate-spin-slow: spin 9s linear infinite;
+}
+
+/* ---------- Keyframes ---------- */
+@keyframes float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -8px, 0);
+  }
+}
+@keyframes shimmer {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes scale-out {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(4px) scale(0.98);
+  }
+}
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: none;
+  }
+}
+@keyframes sheet-out {
+  from {
+    transform: none;
+  }
+  to {
+    transform: translateY(100%);
+  }
+}
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes gradient-pan {
+  from {
+    background-position: 0% 50%;
+  }
+  to {
+    background-position: 200% 50%;
+  }
+}
+@keyframes pulse-dot {
+  0% {
+    box-shadow: 0 0 0 0 currentColor;
+    opacity: 1;
+  }
+  70% {
+    box-shadow: 0 0 0 6px transparent;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+@keyframes indeterminate {
+  0% {
+    transform: translateX(-110%);
+  }
+  100% {
+    transform: translateX(330%);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* ---------- Base ---------- */
+@layer base {
+  :root {
+    /* Height of the mobile bottom tab bar; floating UI should sit above `--app-bottom-inset`. */
+    --mobile-nav-h: 4rem;
+    --app-bottom-inset: 0px;
+    --toast-offset-bottom: 24px;
+    --header-h: 4rem;
+    color-scheme: light;
+  }
+
+  @media (max-width: 47.99rem) {
+    :root {
+      --app-bottom-inset: calc(var(--mobile-nav-h) + env(safe-area-inset-bottom, 0px));
+      --toast-offset-bottom: calc(var(--app-bottom-inset) + 12px);
+    }
+  }
+
+  /* Phones: the queue dock spans the full width, so toasts stack above it (QueueDock sets the space). */
+  @media (max-width: 39.99rem) {
+    :root {
+      --toast-offset-bottom: calc(var(--app-bottom-inset) + var(--queue-dock-space, 0px) + 12px);
+    }
+  }
+
+  .dark {
+    color-scheme: dark;
+    --color-canvas: var(--color-ink-900);
+    --color-surface: rgb(255 255 255 / 0.04);
+    --color-elevated: var(--color-ink-800);
+    --color-line: rgb(255 255 255 / 0.1);
+    --color-line-strong: rgb(255 255 255 / 0.18);
+    --color-fg: #f4f4f6;
+    --color-muted: #a3a3b2;
+    --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.3);
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3), 0 12px 32px -16px rgb(0 0 0 / 0.6);
+    --shadow-lift: 0 2px 6px rgb(0 0 0 / 0.35), 0 24px 48px -20px rgb(0 0 0 / 0.7);
+    --shadow-pop: 0 0 0 1px rgb(255 255 255 / 0.08), 0 16px 40px -8px rgb(0 0 0 / 0.6), 0 40px 100px -30px rgb(0 0 0 / 0.8);
+    --shadow-glow: 0 0 0 1px rgb(167 139 250 / 0.3), 0 10px 36px -8px rgb(139 92 246 / 0.6);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+    text-rendering: optimizeLegibility;
+    scroll-padding-top: calc(var(--header-h) + env(safe-area-inset-top, 0px) + 1rem);
+  }
+
+  body {
+    background-color: var(--color-canvas);
+    color: var(--color-fg);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: "cv11", "ss01";
+    overflow-x: clip;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    text-wrap: balance;
+  }
+
+  p,
+  li,
+  dd {
+    text-wrap: pretty;
+  }
+
+  ::selection {
+    background-color: rgb(139 92 246 / 0.22);
+  }
+  .dark ::selection {
+    background-color: rgb(167 139 250 / 0.35);
+  }
+
+  /* One consistent, high-contrast focus ring with a soft brand glow. */
+  :focus-visible {
+    outline: 2px solid var(--color-brand-500);
+    outline-offset: 2px;
+  }
+  .dark :focus-visible {
+    outline-color: var(--color-brand-400);
+  }
+
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  summary,
+  label[for] {
+    cursor: pointer;
+  }
+
+  /* Thin, quiet scrollbars. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(113 113 122 / 0.35) transparent;
+  }
+  .dark * {
+    scrollbar-color: rgb(255 255 255 / 0.18) transparent;
+  }
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    border: 3px solid transparent;
+    border-radius: 9999px;
+    background-clip: padding-box;
+    background-color: rgb(113 113 122 / 0.35);
+  }
+  .dark ::-webkit-scrollbar-thumb {
+    background-color: rgb(255 255 255 / 0.18);
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  /* Native form controls follow the theme. */
+  input[type="search"]::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+    appearance: none;
+  }
+}
+
+/* ---------- Toasts (sonner) ----------
+ * Unlayered on purpose: sonner injects unlayered CSS at runtime, which would beat anything inside
+ * an @layer. App font, rounder corners, tuned dark palette. */
+:root [data-sonner-toaster] {
+  font-family: inherit;
+  --border-radius: 16px;
+}
+:root [data-sonner-toaster] [data-sonner-toast][data-styled="true"] {
+  padding: 14px 16px;
+  font-size: 14px;
+  gap: 10px;
+  box-shadow: var(--shadow-pop);
+}
+:root [data-sonner-toaster] [data-sonner-toast][data-styled="true"] [data-title] {
+  font-weight: 600;
+  line-height: 1.35;
+}
+:root [data-sonner-toaster] [data-sonner-toast][data-styled="true"] [data-description] {
+  font-size: 13px;
+  line-height: 1.45;
+  opacity: 0.88;
+}
+:root [data-sonner-toaster] [data-sonner-toast][data-styled="true"] [data-button] {
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 9999px;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+:root [data-sonner-toaster] [data-sonner-toast][data-styled="true"] [data-button]:focus-visible,
+:root [data-sonner-toaster] [data-sonner-toast][data-styled="true"] [data-close-button]:focus-visible {
+  outline: 2px solid var(--color-brand-500);
+  outline-offset: 2px;
+}
+:root [data-sonner-toaster][data-sonner-theme="dark"] {
+  --normal-bg: var(--color-ink-800);
+  --normal-bg-hover: var(--color-ink-700);
+  --normal-border: rgb(255 255 255 / 0.1);
+  --normal-border-hover: rgb(255 255 255 / 0.16);
+}
+:root [data-sonner-toaster][data-sonner-theme="dark"] [data-sonner-toast][data-styled="true"] [data-description] {
+  color: inherit;
+}
+
+/* ---------- Reusable utilities ---------- */
+
+/* Frosted translucent surface for sticky bars, popovers and overlays. */
+@utility glass {
+  background-color: rgb(255 255 255 / 0.72);
+  -webkit-backdrop-filter: blur(20px) saturate(1.7);
+  backdrop-filter: blur(20px) saturate(1.7);
+  @variant dark {
+    background-color: rgb(12 12 20 / 0.62);
+  }
+}
+
+/* Brand gradient fill (indigo → violet → fuchsia). */
+@utility brand-gradient {
+  background-image: linear-gradient(
+    135deg,
+    var(--color-indigo-500) 0%,
+    var(--color-violet-500) 52%,
+    var(--color-fuchsia-500) 100%
+  );
+}
+
+/* Gradient text for accent words. Pair with font-serif italic for headline accents. */
+@utility text-gradient {
+  background-image: linear-gradient(
+    100deg,
+    var(--color-indigo-500) 0%,
+    var(--color-violet-500) 45%,
+    var(--color-fuchsia-500) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  @variant dark {
+    background-image: linear-gradient(
+      100deg,
+      var(--color-indigo-300) 0%,
+      var(--color-violet-300) 45%,
+      var(--color-fuchsia-300) 100%
+    );
+  }
+}
+
+/* Soft aurora: layered, pre-blurred radial glows. Use on a full-bleed decorative layer. */
+@utility aurora {
+  background-image:
+    radial-gradient(42% 38% at 12% 0%, rgb(99 102 241 / 0.16), transparent 70%),
+    radial-gradient(36% 34% at 88% 4%, rgb(217 70 239 / 0.12), transparent 70%),
+    radial-gradient(40% 30% at 50% -6%, rgb(139 92 246 / 0.14), transparent 72%),
+    radial-gradient(50% 40% at 80% 100%, rgb(14 165 233 / 0.06), transparent 70%);
+  @variant dark {
+    background-image:
+      radial-gradient(42% 40% at 12% 0%, rgb(99 102 241 / 0.26), transparent 70%),
+      radial-gradient(36% 36% at 88% 4%, rgb(217 70 239 / 0.2), transparent 70%),
+      radial-gradient(44% 34% at 50% -6%, rgb(139 92 246 / 0.24), transparent 72%),
+      radial-gradient(50% 40% at 80% 100%, rgb(14 165 233 / 0.1), transparent 70%);
+  }
+}
+
+/* Faint grid that fades out from the top. */
+@utility bg-grid {
+  background-image:
+    linear-gradient(to right, rgb(24 24 27 / 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(24 24 27 / 0.05) 1px, transparent 1px);
+  background-size: 44px 44px;
+  -webkit-mask-image: radial-gradient(ellipse 75% 60% at 50% 0%, #000 25%, transparent 75%);
+  mask-image: radial-gradient(ellipse 75% 60% at 50% 0%, #000 25%, transparent 75%);
+  @variant dark {
+    background-image:
+      linear-gradient(to right, rgb(255 255 255 / 0.045) 1px, transparent 1px),
+      linear-gradient(to bottom, rgb(255 255 255 / 0.045) 1px, transparent 1px);
+  }
+}
+
+/* Very subtle film grain. */
+@utility bg-noise {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 160px 160px;
+}
+
+/* Skeleton shimmer sweep (add to any element with a background). */
+@utility shimmer {
+  position: relative;
+  overflow: hidden;
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background-image: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.6), transparent);
+    animation: shimmer 1.6s linear infinite;
+  }
+  @variant dark {
+    &::after {
+      background-image: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.07), transparent);
+    }
+  }
+}
+
+/* Animated brand-gradient border (1.5px). The element needs a radius; content stays untouched. */
+@utility gradient-border {
+  position: relative;
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    padding: 1.5px;
+    border-radius: inherit;
+    background: linear-gradient(
+      90deg,
+      var(--color-indigo-500),
+      var(--color-violet-500),
+      var(--color-fuchsia-500),
+      var(--color-sky-400),
+      var(--color-indigo-500)
+    );
+    background-size: 200% 100%;
+    animation: gradient-pan 3s linear infinite;
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask:
+      linear-gradient(#000 0 0) content-box exclude,
+      linear-gradient(#000 0 0);
+    pointer-events: none;
+  }
+}
+
+/* Hide scrollbars while keeping scrolling (chip rows, segmented controls). */
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Padding that clears the iOS home indicator. */
+@utility pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Padding that clears the status bar / notch when installed with a translucent status bar (iOS). */
+@utility pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* Keyboard-only "Skip to content" link. */
+@utility skip-link {
+  position: fixed;
+  left: 1rem;
+  top: 0.75rem;
+  z-index: 100;
+  transform: translateY(-200%);
+  border-radius: 0.75rem;
+  background: var(--color-fg);
+  color: var(--color-canvas);
+  padding: 0.5rem 0.875rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: transform 150ms ease-out;
+  &:focus-visible {
+    transform: none;
+  }
+}
+
+/* Theme switches apply instantly (no color transitions mid-swap). */
+html[data-theme-switching] *,
+html[data-theme-switching] *::before,
+html[data-theme-switching] *::after {
+  transition: none !important;
+}
+
+/* ---------- Motion safety ---------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
