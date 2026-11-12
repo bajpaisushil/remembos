@@ -308,3 +308,13 @@ test("recent memories on home: Copy for text, Download for files — without ope
   expect((await download).suggestedFilename()).toBe("boarding-pass.txt");
   await expect(page).toHaveURL(/\/$/);
 });
+
+test.describe("on a device in India", () => {
+  test.use({ timezoneId: "Asia/Kolkata" });
+  test("the page reader reads Hindi as well as English by default", async ({ page }) => {
+    await page.goto("/");
+    await expect
+      .poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("remembos:settings:v1") || "{}").ocrLanguages ?? null), { timeout: 10_000 })
+      .toMatch(/hin/);
+  });
+});

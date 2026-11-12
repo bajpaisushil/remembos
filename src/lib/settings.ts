@@ -16,6 +16,8 @@ export interface Settings {
   lastBackupAt?: number;
   /** When every AI model was downloaded for offline use (set on app install / "Get ready for offline"). */
   offlinePreparedAt?: number;
+  /** The text reader's languages were set from this device's language/region once (never overrides a choice). */
+  ocrDefaultsApplied?: boolean;
   /** Already asked the browser for persistent storage. */
   persistAsked?: boolean;
   /** Toast keys the user snoozed → snoozed-until ms epoch. */
@@ -41,10 +43,20 @@ const OCR_FOR_LOCALE: Record<string, string> = {
   zh: "chi_sim", ja: "jpn", ko: "kor",
 };
 
-/** "eng" plus the browser's own language when English OCR can't read that script (first run only). */
+/** Device in India (time zone) → read Hindi too: most scanned documents there mix Hindi and English. */
+function inIndia(): boolean {
+  try {
+    return /^Asia\/(Kolkata|Calcutta)$/.test(Intl.DateTimeFormat().resolvedOptions().timeZone);
+  } catch {
+    return false;
+  }
+}
+
+/** "eng" plus the browser's own language when English OCR can't read that script, plus Hindi in India. */
 function defaultOcrLanguages(): string {
   try {
     const langs = new Set(["eng"]);
+    if (inIndia()) langs.add("hin");
     for (const tag of navigator.languages ?? [navigator.language]) {
       const base = (tag || "").toLowerCase();
       const code = base.startsWith("zh-tw") || base.startsWith("zh-hk") ? "chi_tra" : OCR_FOR_LOCALE[base.split("-")[0]];
@@ -61,8 +73,18 @@ function load(): Settings {
   if (typeof window === "undefined") return DEFAULT_SETTINGS;
   try {
     const raw = window.localStorage.getItem(KEY);
-    if (!raw) return { ...DEFAULT_SETTINGS, ocrLanguages: defaultOcrLanguages() };
-    return { ...DEFAULT_SETTINGS, ...(JSON.parse(raw) as Partial<Settings>) };
+    const saved = raw ? (JSON.parse(raw) as Partial<Settings>) : {};
+    // First run (or a version that always started with English only): read this device's language/region too.
+    if (!saved.ocrDefaultsApplied) {
+      if (!saved.ocrLanguages || saved.ocrLanguages === "eng") saved.ocrLanguages = defaultOcrLanguages();
+      saved.ocrDefaultsApplied = true;
+      try {
+        window.localStorage.setItem(KEY, JSON.stringify({ ...DEFAULT_SETTINGS, ...saved }));
+      } catch {
+        /* storage blocked — applied for this session only */
+      }
+    }
+    return { ...DEFAULT_SETTINGS, ...saved };
   } catch {
     return DEFAULT_SETTINGS;
   }
