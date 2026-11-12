@@ -45,6 +45,8 @@ export interface MemoryItem {
   height?: number;
   /** Mean OCR confidence 0..100, when OCR was used. */
   ocrConfidence?: number;
+  /** Page-reader languages used for this memory (e.g. "eng+hin"), when OCR was used. */
+  ocrLangs?: string;
   /** User tags (lowercase, no '#'). */
   tags: string[];
   /** Entity ids mentioned by this item (see Entity.id). */

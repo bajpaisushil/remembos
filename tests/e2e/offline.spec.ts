@@ -29,7 +29,7 @@ function realErrors(page: Page): string[] {
     if (m.type() !== "error") return;
     const t = m.text();
     // Offline, the browser logs each network attempt the app falls back from (and model hosts) — expected.
-    if (/ERR_INTERNET_DISCONNECTED|ERR_NAME_NOT_RESOLVED|favicon/i.test(t)) return;
+    if (/ERR_INTERNET_DISCONNECTED|ERR_NAME_NOT_RESOLVED|favicon|Parameter not found/i.test(t)) return;
     errors.push(`console: ${t}`);
   });
   return errors;

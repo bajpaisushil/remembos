@@ -1,6 +1,6 @@
 "use client";
 // Called once from the app shell on the client. Wires background services together.
-import { hydrateSettings, getSettings } from "./settings";
+import { hydrateSettings, getSettings, settingsStore } from "./settings";
 import { startStorageWatcher } from "./storage/monitor";
 import { installPasteHandler, resumeInterrupted } from "./ingest";
 import { backfillEmbeddings, ensureIndex } from "./search";
@@ -49,13 +49,56 @@ export function bootstrap(): () => void {
   if (navigator.onLine) idle(() => void retryWaitingForInternet());
   else idle(() => void warnIfNotReadyForOffline());
 
+  // Scanned memories read before a language was added (e.g. Hindi) are read again with it, automatically.
+  idle(() => void rereadWithNewLanguages());
+  let langs = getSettings().ocrLanguages;
+  const unsubscribeLangs = settingsStore.subscribe(() => {
+    const next = getSettings().ocrLanguages;
+    if (next !== langs) {
+      langs = next;
+      void rereadWithNewLanguages();
+    }
+  });
+
   return () => {
     started = false;
     stopWatcher();
     removePaste();
     window.removeEventListener("online", onOnline);
     window.removeEventListener("offline", onOffline);
+    unsubscribeLangs();
   };
+}
+
+let rereading = false;
+
+/** Re-read scanned memories (photos, scanned PDFs, video frames) that were read without a language now on. */
+async function rereadWithNewLanguages(): Promise<void> {
+  if (rereading) return;
+  rereading = true;
+  try {
+    const wanted = getSettings().ocrLanguages.split("+");
+    const stale = await db.items
+      .filter((i) => {
+        if (i.ocrConfidence === undefined || !i.hasFile || i.status !== "ready") return false;
+        const used = (i.ocrLangs ?? "eng").split("+");
+        return wanted.some((l) => !used.includes(l));
+      })
+      .toArray();
+    if (!stale.length) return;
+    const { toast } = await import("sonner");
+    const { retryItem } = await import("./ingest");
+    const added = wanted.filter((l) => l !== "eng").join(", ") || "the new languages";
+    toast.info(`Reading ${stale.length} scanned ${stale.length === 1 ? "memory" : "memories"} again`, {
+      id: "reread-languages",
+      description: `So text in ${added} becomes readable and searchable too.`,
+    });
+    for (const item of stale) await retryItem(item.id).catch(() => {});
+  } catch (err) {
+    console.warn("[remembos] couldn't re-read scanned memories", err);
+  } finally {
+    rereading = false;
+  }
 }
 
 /** Memories that couldn't be read offline (an AI model wasn't downloaded yet) — read them now. */

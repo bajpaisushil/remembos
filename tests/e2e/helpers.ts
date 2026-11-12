@@ -6,7 +6,8 @@ export const SETTINGS_KEY = "remembos:settings:v1";
 export const NETWORK = process.env.REMEMBOS_E2E_NETWORK === "1";
 
 /** Console noise that is not an app error (third-party model hosts, favicon probes). */
-const IGNORED = [/favicon/i, /cdn\.jsdelivr\.net/i, /huggingface\.co/i, /hf\.co\//i];
+// Plus the text-reader library's harmless warnings when it loads some language files ("Parameter not found").
+const IGNORED = [/favicon/i, /cdn\.jsdelivr\.net/i, /huggingface\.co/i, /hf\.co\//i, /Parameter not found/i];
 
 export interface Watch {
   errors: string[];

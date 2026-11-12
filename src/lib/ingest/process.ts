@@ -100,6 +100,7 @@ export async function processStoredItem(itemId: string, ctx: ExtractContext): Pr
       width: extracted.width ?? current.width,
       height: extracted.height ?? current.height,
       ocrConfidence: extracted.ocrConfidence,
+      ocrLangs: extracted.ocrConfidence !== undefined ? getSettings().ocrLanguages : undefined,
     }),
   });
   throwIfAborted(ctx.signal);
