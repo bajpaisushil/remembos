@@ -15,6 +15,15 @@ function walk(dir) {
   }
 }
 walk(join(out, "_next", "static"));
+// Each page's navigation data (__next*.txt, index.txt): lets in-app navigation work offline without reloads.
+(function walkTxt(dir) {
+  for (const name of readdirSync(dir)) {
+    const p = join(dir, name);
+    if (statSync(p).isDirectory()) {
+      if (name !== "_next" && name !== "vendor" && name !== "workers") walkTxt(p);
+    } else if (name.endsWith(".txt")) files.push(relative(out, p).split(sep).join("/"));
+  }
+})(out);
 // The PDF reader's helper and the AI background workers are fetched on first use — precache them too.
 for (const dir of ["vendor", "workers"]) {
   try {
